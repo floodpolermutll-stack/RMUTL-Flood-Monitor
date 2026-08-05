@@ -108,7 +108,7 @@ main {
 
 .station-card {
   position: relative;
-  min-height: 190px;
+  min-height: 220px;
   padding: 20px;
   overflow: hidden;
   color: inherit;
@@ -160,6 +160,24 @@ main {
   color: var(--muted);
   font-size: 0.9rem;
   font-weight: 500;
+}
+
+.range-values {
+  display: flex;
+  gap: 7px;
+  margin-top: 8px;
+}
+
+.range-values span {
+  padding: 4px 7px;
+  color: var(--muted);
+  font-size: 0.7rem;
+  background: #edf6f7;
+  border-radius: 5px;
+}
+
+.range-values b {
+  color: var(--ink);
 }
 
 .station-card p {
