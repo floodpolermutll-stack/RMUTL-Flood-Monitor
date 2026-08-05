@@ -25,7 +25,17 @@
         <h1>ระบบติดตามระดับน้ำ</h1>
         <p class="subtitle">ข้อมูลระดับน้ำจากสถานีตรวจวัดแบบออนไลน์</p>
       </div>
-      <div class="updated" id="globalUpdated">กำลังโหลดข้อมูล…</div>
+
+      <div class="header-meta">
+        <div class="live-clock">
+          <span class="pulse"></span>
+          <span id="liveClock">กำลังโหลดเวลา…</span>
+        </div>
+
+        <div class="updated" id="globalUpdated">
+          กำลังโหลดข้อมูล…
+        </div>
+      </div>
     </header>
 
     <main>
@@ -42,13 +52,34 @@
         </div>
 
         <div>
-          <label for="dateSelect">ดูข้อมูลย้อนหลัง</label>
-          <select id="dateSelect">
-            <option>กำลังโหลด…</option>
-          </select>
+          <label for="dateInput">เลือกวันที่ดูย้อนหลัง</label>
+
+          <div class="date-control">
+            <button
+              class="date-step"
+              type="button"
+              id="previousDate"
+              aria-label="วันก่อนหน้า"
+            >
+              ‹
+            </button>
+
+            <input type="date" id="dateInput" />
+
+            <button
+              class="date-step"
+              type="button"
+              id="nextDate"
+              aria-label="วันถัดไป"
+            >
+              ›
+            </button>
+          </div>
         </div>
 
-        <button type="button" id="refreshButton">รีเฟรชข้อมูล</button>
+        <button type="button" id="refreshButton">
+          รีเฟรชข้อมูล
+        </button>
       </section>
 
       <section class="dashboard-grid">
@@ -57,7 +88,11 @@
             <div>
               <p class="eyebrow">ระดับน้ำ</p>
               <h2 id="chartTitle">กราฟระดับน้ำ</h2>
+              <p class="chart-date" id="chartDateLabel">
+                กำลังโหลดข้อมูล
+              </p>
             </div>
+
             <span id="unitLabel">เมตร</span>
           </div>
 
