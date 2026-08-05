@@ -80,6 +80,21 @@ function latest(station) {
   return data[data.length - 1];
 }
 
+function rangeFor(station) {
+  const levels = (state.data[station.id] || []).map(
+    (reading) => reading.level
+  );
+
+  if (!levels.length) {
+    return null;
+  }
+
+  return {
+    min: Math.min(...levels),
+    max: Math.max(...levels),
+  };
+}
+
 function statusFor(station, reading) {
   if (!station.deployed) {
     return ["pending", "รอติดตั้ง"];
@@ -100,6 +115,7 @@ function renderCards() {
   $("#stationCards").innerHTML = stations
     .map((station) => {
       const reading = latest(station);
+      const range = rangeFor(station);
       const [status, label] = statusFor(station, reading);
 
       const value = reading
@@ -120,8 +136,23 @@ function renderCards() {
           data-station="${station.id}"
         >
           <span class="status ${status}">${label}</span>
+
           <h2>${station.name}</h2>
+
           <strong>${value}</strong>
+
+          <div class="range-values">
+            <span>
+              ต่ำสุด <b>${range ? range.min.toFixed(2) : "—"}</b>
+              ${station.unit}
+            </span>
+
+            <span>
+              สูงสุด <b>${range ? range.max.toFixed(2) : "—"}</b>
+              ${station.unit}
+            </span>
+          </div>
+
           <p>${update}</p>
         </button>
       `;
@@ -204,12 +235,23 @@ function renderChart() {
     state.chart.destroy();
   }
 
-  state.chart = new Chart($("#waterChart"), {
+  const canvas = $("#waterChart");
+
+  const gradient = canvas
+    .getContext("2d")
+    .createLinearGradient(0, 0, 0, 330);
+
+  gradient.addColorStop(0, "rgba(8, 126, 139, 0.32)");
+  gradient.addColorStop(1, "rgba(8, 126, 139, 0.02)");
+
+  state.chart = new Chart(canvas, {
     type: "line",
 
     data: {
       labels: readings.map((item) =>
-        formatDate(item.timestamp, { timeStyle: "short" })
+        formatDate(item.timestamp, {
+          timeStyle: "short",
+        })
       ),
 
       datasets: [
@@ -217,10 +259,15 @@ function renderChart() {
           label: "ระดับน้ำ",
           data: readings.map((item) => item.level),
           borderColor: "#087e8b",
-          backgroundColor: "rgba(8,126,139,.12)",
+          backgroundColor: gradient,
           fill: true,
-          tension: 0.28,
-          pointRadius: 3,
+          borderWidth: 3,
+          tension: 0.36,
+          pointRadius: 4,
+          pointHoverRadius: 7,
+          pointBackgroundColor: "#ffffff",
+          pointBorderColor: "#087e8b",
+          pointBorderWidth: 3,
         },
         {
           label: "ระดับเฝ้าระวัง",
@@ -238,16 +285,53 @@ function renderChart() {
 
       plugins: {
         legend: {
-          position: "bottom",
+          position: "top",
+          labels: {
+            usePointStyle: true,
+            boxWidth: 9,
+            padding: 18,
+          },
+        },
+
+        tooltip: {
+          backgroundColor: "#163044",
+          padding: 12,
+          displayColors: false,
+
+          callbacks: {
+            label: (context) =>
+              `${context.dataset.label}: ${Number(
+                context.raw
+              ).toFixed(2)} ${station.unit}`,
+          },
         },
       },
 
       scales: {
         y: {
           beginAtZero: true,
+
           title: {
             display: true,
             text: station.unit,
+          },
+
+          grid: {
+            color: "#e7eff1",
+          },
+
+          ticks: {
+            padding: 8,
+          },
+        },
+
+        x: {
+          grid: {
+            display: false,
+          },
+
+          ticks: {
+            maxRotation: 0,
           },
         },
       },
@@ -405,6 +489,7 @@ updateLiveClock();
 
 setInterval(updateLiveClock, 1000);
 
+/* โหลดข้อมูลใหม่ทุก 5 นาที */
 setInterval(refresh, 300000);
 
 refresh();
