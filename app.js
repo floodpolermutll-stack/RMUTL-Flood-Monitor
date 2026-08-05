@@ -184,16 +184,14 @@ function renderChart() {
     `กราฟระดับน้ำ: ${station.shortName}`;
 
   $("#chartDateLabel").textContent = state.selectedDate
-    ? formatDate(state.selectedDate, {
-        dateStyle: "full",
-      })
+    ? formatDate(state.selectedDate, { dateStyle: "full" })
     : "ยังไม่มีข้อมูล";
 
   $("#unitLabel").textContent = station.unit;
 
   if (!station.deployed) {
     $("#chartNotice").textContent =
-      "สถานีนี้ยังไม่ได้ติดตั้ง เมื่อพร้อม ให้ตั้งค่า deployed เป็น true และใส่ลิงก์ Google Sheets ใน config.js";
+      "สถานีนี้ยังไม่ได้ติดตั้ง";
   } else if (!readings.length) {
     $("#chartNotice").textContent =
       "ยังไม่มีข้อมูลสำหรับวันที่ที่เลือก";
@@ -211,9 +209,7 @@ function renderChart() {
 
     data: {
       labels: readings.map((item) =>
-        formatDate(item.timestamp, {
-          timeStyle: "short",
-        })
+        formatDate(item.timestamp, { timeStyle: "short" })
       ),
 
       datasets: [
@@ -308,10 +304,12 @@ function selectStation(id) {
 
   const station = stations.find((item) => item.id === id);
 
-  state.map.flyTo(
-    [station.latitude, station.longitude],
-    14
-  );
+  if (state.map) {
+    state.map.flyTo(
+      [station.latitude, station.longitude],
+      14
+    );
+  }
 }
 
 function changeDate(offset) {
@@ -339,13 +337,11 @@ function changeDate(offset) {
 }
 
 function updateLiveClock() {
-  const now = new Date();
-
   $("#liveClock").textContent =
     `เวลาปัจจุบัน ${new Intl.DateTimeFormat("th-TH", {
       dateStyle: "medium",
       timeStyle: "medium",
-    }).format(now)}`;
+    }).format(new Date())}`;
 }
 
 async function refresh() {
@@ -356,7 +352,7 @@ async function refresh() {
       try {
         state.data[station.id] = await loadStation(station);
       } catch (error) {
-        console.error(station.id, error);
+        console.error(error);
         state.data[station.id] = [];
       }
     })
@@ -404,3 +400,11 @@ $("#nextDate").addEventListener("click", () => {
 $("#refreshButton").addEventListener("click", () => {
   refresh();
 });
+
+updateLiveClock();
+
+setInterval(updateLiveClock, 1000);
+
+setInterval(refresh, 300000);
+
+refresh();
