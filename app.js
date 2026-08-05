@@ -2,10 +2,10 @@ const { stations } = window.WATER_APP_CONFIG;
 
 const state = {
   selectedStationId: stations[0].id,
+  selectedDate: "",
   data: {},
   chart: null,
   map: null,
-  markers: [],
 };
 
 const $ = (selector) => document.querySelector(selector);
@@ -56,8 +56,7 @@ async function loadStation(station) {
     throw new Error("ไม่สามารถโหลด Google Sheets ได้");
   }
 
-  const csv = await response.text();
-  return parseCsv(csv);
+  return parseCsv(await response.text());
 }
 
 function formatDate(
@@ -67,7 +66,9 @@ function formatDate(
     timeStyle: "short",
   }
 ) {
-  return new Intl.DateTimeFormat("th-TH", options).format(new Date(value));
+  return new Intl.DateTimeFormat("th-TH", options).format(
+    new Date(value)
+  );
 }
 
 function dateKey(value) {
@@ -96,36 +97,36 @@ function statusFor(station, reading) {
 }
 
 function renderCards() {
-  const cards = stations.map((station) => {
-    const reading = latest(station);
-    const [status, label] = statusFor(station, reading);
+  $("#stationCards").innerHTML = stations
+    .map((station) => {
+      const reading = latest(station);
+      const [status, label] = statusFor(station, reading);
 
-    const displayLevel = reading
-      ? `${reading.level.toFixed(2)} <small>${station.unit}</small>`
-      : "—";
+      const value = reading
+        ? `${reading.level.toFixed(2)} <small>${station.unit}</small>`
+        : "—";
 
-    const description = reading
-      ? `อัปเดต ${formatDate(reading.timestamp)}`
-      : station.deployed
-        ? "กรุณาตรวจสอบการเชื่อมต่อข้อมูล"
-        : "พร้อมรองรับเมื่อเริ่มติดตั้งสถานี";
+      const update = reading
+        ? `อัปเดต ${formatDate(reading.timestamp)}`
+        : station.deployed
+          ? "กรุณาตรวจสอบการเชื่อมต่อข้อมูล"
+          : "พร้อมรองรับเมื่อเริ่มติดตั้งสถานี";
 
-    return `
-      <button
-        class="station-card ${
-          station.id === state.selectedStationId ? "selected" : ""
-        }"
-        data-station="${station.id}"
-      >
-        <span class="status ${status}">${label}</span>
-        <h2>${station.name}</h2>
-        <strong>${displayLevel}</strong>
-        <p>${description}</p>
-      </button>
-    `;
-  });
-
-  $("#stationCards").innerHTML = cards.join("");
+      return `
+        <button
+          class="station-card ${
+            station.id === state.selectedStationId ? "selected" : ""
+          }"
+          data-station="${station.id}"
+        >
+          <span class="status ${status}">${label}</span>
+          <h2>${station.name}</h2>
+          <strong>${value}</strong>
+          <p>${update}</p>
+        </button>
+      `;
+    })
+    .join("");
 
   document.querySelectorAll("[data-station]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -148,26 +149,26 @@ function renderStationOptions() {
 function renderDates() {
   const readings = state.data[state.selectedStationId] || [];
 
-  const dates = [...new Set(readings.map((reading) => dateKey(reading.timestamp)))]
-    .reverse();
+  const dates = [
+    ...new Set(readings.map((reading) => dateKey(reading.timestamp))),
+  ].sort();
+
+  const input = $("#dateInput");
 
   if (!dates.length) {
-    $("#dateSelect").innerHTML =
-      '<option value="all">ไม่มีข้อมูล</option>';
+    input.value = "";
+    input.min = "";
+    input.max = "";
     return;
   }
 
-  $("#dateSelect").innerHTML = `
-    <option value="all">ทุกวันที่มีข้อมูล</option>
-    ${dates
-      .map(
-        (date) =>
-          `<option value="${date}">
-            ${formatDate(date, { dateStyle: "full" })}
-          </option>`
-      )
-      .join("")}
-  `;
+  if (!state.selectedDate || !dates.includes(state.selectedDate)) {
+    state.selectedDate = dates[dates.length - 1];
+  }
+
+  input.min = dates[0];
+  input.max = dates[dates.length - 1];
+  input.value = state.selectedDate;
 }
 
 function renderChart() {
@@ -175,18 +176,18 @@ function renderChart() {
     (item) => item.id === state.selectedStationId
   );
 
-  const chosenDate = $("#dateSelect").value;
-  const allReadings = state.data[station.id] || [];
-
-  const readings =
-    chosenDate === "all"
-      ? allReadings
-      : allReadings.filter(
-          (item) => dateKey(item.timestamp) === chosenDate
-        );
+  const readings = (state.data[station.id] || []).filter(
+    (item) => dateKey(item.timestamp) === state.selectedDate
+  );
 
   $("#chartTitle").textContent =
     `กราฟระดับน้ำ: ${station.shortName}`;
+
+  $("#chartDateLabel").textContent = state.selectedDate
+    ? formatDate(state.selectedDate, {
+        dateStyle: "full",
+      })
+    : "ยังไม่มีข้อมูล";
 
   $("#unitLabel").textContent = station.unit;
 
@@ -195,7 +196,7 @@ function renderChart() {
       "สถานีนี้ยังไม่ได้ติดตั้ง เมื่อพร้อม ให้ตั้งค่า deployed เป็น true และใส่ลิงก์ Google Sheets ใน config.js";
   } else if (!readings.length) {
     $("#chartNotice").textContent =
-      "ยังไม่มีข้อมูลสำหรับแสดงผล กรุณาตรวจสอบลิงก์ Google Sheets และรูปแบบคอลัมน์";
+      "ยังไม่มีข้อมูลสำหรับวันที่ที่เลือก";
   } else {
     $("#chartNotice").textContent =
       "เส้นประแสดงระดับเฝ้าระวัง";
@@ -209,7 +210,11 @@ function renderChart() {
     type: "line",
 
     data: {
-      labels: readings.map((item) => formatDate(item.timestamp)),
+      labels: readings.map((item) =>
+        formatDate(item.timestamp, {
+          timeStyle: "short",
+        })
+      ),
 
       datasets: [
         {
@@ -289,18 +294,19 @@ function setupMap() {
     marker.on("click", () => {
       selectStation(station.id);
     });
-
-    state.markers.push({
-      id: station.id,
-      marker,
-    });
   });
 }
 
-function updateMapFocus() {
-  const station = stations.find(
-    (item) => item.id === state.selectedStationId
-  );
+function selectStation(id) {
+  state.selectedStationId = id;
+  state.selectedDate = "";
+
+  renderCards();
+  renderStationOptions();
+  renderDates();
+  renderChart();
+
+  const station = stations.find((item) => item.id === id);
 
   state.map.flyTo(
     [station.latitude, station.longitude],
@@ -308,14 +314,38 @@ function updateMapFocus() {
   );
 }
 
-function selectStation(id) {
-  state.selectedStationId = id;
+function changeDate(offset) {
+  const readings = state.data[state.selectedStationId] || [];
 
-  renderCards();
-  renderStationOptions();
+  const dates = [
+    ...new Set(readings.map((reading) => dateKey(reading.timestamp))),
+  ].sort();
+
+  const index = dates.indexOf(state.selectedDate);
+
+  if (index < 0) {
+    return;
+  }
+
+  const nextIndex = Math.max(
+    0,
+    Math.min(dates.length - 1, index + offset)
+  );
+
+  state.selectedDate = dates[nextIndex];
+
   renderDates();
   renderChart();
-  updateMapFocus();
+}
+
+function updateLiveClock() {
+  const now = new Date();
+
+  $("#liveClock").textContent =
+    `เวลาปัจจุบัน ${new Intl.DateTimeFormat("th-TH", {
+      dateStyle: "medium",
+      timeStyle: "medium",
+    }).format(now)}`;
 }
 
 async function refresh() {
@@ -358,12 +388,19 @@ $("#stationSelect").addEventListener("change", (event) => {
   selectStation(event.target.value);
 });
 
-$("#dateSelect").addEventListener("change", () => {
+$("#dateInput").addEventListener("change", (event) => {
+  state.selectedDate = event.target.value;
   renderChart();
+});
+
+$("#previousDate").addEventListener("click", () => {
+  changeDate(-1);
+});
+
+$("#nextDate").addEventListener("click", () => {
+  changeDate(1);
 });
 
 $("#refreshButton").addEventListener("click", () => {
   refresh();
 });
-
-refresh();
