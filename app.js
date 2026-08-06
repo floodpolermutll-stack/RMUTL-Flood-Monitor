@@ -6,9 +6,36 @@ const state = {
   data: {},
   chart: null,
   map: null,
+  markers: [],
 };
 
 const $ = (selector) => document.querySelector(selector);
+
+function hexToRgba(hex, opacity) {
+  const value = hex.replace("#", "");
+  const number = parseInt(value, 16);
+
+  const red = (number >> 16) & 255;
+  const green = (number >> 8) & 255;
+  const blue = number & 255;
+
+  return `rgba(${red}, ${green}, ${blue}, ${opacity})`;
+}
+
+function createStationIcon(station) {
+  return L.divIcon({
+    className: "station-marker-wrap",
+    html: `
+      <span
+        class="station-marker"
+        style="--station-color: ${station.color};"
+      ></span>
+    `,
+    iconSize: [32, 32],
+    iconAnchor: [16, 16],
+    popupAnchor: [0, -17],
+  });
+}
 
 function parseCsv(csv) {
   const rows = csv
@@ -134,6 +161,10 @@ function renderCards() {
             station.id === state.selectedStationId ? "selected" : ""
           }"
           data-station="${station.id}"
+          style="
+            --station-color: ${station.color};
+            --station-soft: ${station.softColor};
+          "
         >
           <span class="status ${status}">${label}</span>
 
@@ -228,7 +259,7 @@ function renderChart() {
       "ยังไม่มีข้อมูลสำหรับวันที่ที่เลือก";
   } else {
     $("#chartNotice").textContent =
-      "เส้นประแสดงระดับเฝ้าระวัง";
+      "ชี้หรือแตะจุดบนกราฟเพื่อดูรายละเอียด";
   }
 
   if (state.chart) {
@@ -241,8 +272,10 @@ function renderChart() {
     .getContext("2d")
     .createLinearGradient(0, 0, 0, 330);
 
-  gradient.addColorStop(0, "rgba(8, 126, 139, 0.32)");
-  gradient.addColorStop(1, "rgba(8, 126, 139, 0.02)");
+  gradient.addColorStop(0, hexToRgba(station.color, 0.35));
+  gradient.addColorStop(1, hexToRgba(station.color, 0.02));
+
+  const levels = readings.map((item) => item.level);
 
   state.chart = new Chart(canvas, {
     type: "line",
@@ -256,9 +289,9 @@ function renderChart() {
 
       datasets: [
         {
-          label: "ระดับน้ำ",
-          data: readings.map((item) => item.level),
-          borderColor: "#087e8b",
+          label: `ระดับน้ำ - ${station.shortName}`,
+          data: levels,
+          borderColor: station.color,
           backgroundColor: gradient,
           fill: true,
           borderWidth: 3,
@@ -266,7 +299,7 @@ function renderChart() {
           pointRadius: 4,
           pointHoverRadius: 7,
           pointBackgroundColor: "#ffffff",
-          pointBorderColor: "#087e8b",
+          pointBorderColor: station.color,
           pointBorderWidth: 3,
         },
         {
@@ -274,6 +307,7 @@ function renderChart() {
           data: readings.map(() => station.warningLevel),
           borderColor: "#ef8354",
           borderDash: [6, 5],
+          borderWidth: 2,
           pointRadius: 0,
         },
       ],
@@ -282,6 +316,11 @@ function renderChart() {
     options: {
       responsive: true,
       maintainAspectRatio: false,
+
+      interaction: {
+        mode: "index",
+        intersect: false,
+      },
 
       plugins: {
         legend: {
@@ -299,10 +338,28 @@ function renderChart() {
           displayColors: false,
 
           callbacks: {
+            title: (items) => {
+              const index = items[0].dataIndex;
+
+              return formatDate(readings[index].timestamp);
+            },
+
             label: (context) =>
               `${context.dataset.label}: ${Number(
                 context.raw
               ).toFixed(2)} ${station.unit}`,
+
+            afterBody: () => {
+              if (!levels.length) {
+                return "";
+              }
+
+              return [
+                `สูงสุด: ${Math.max(...levels).toFixed(2)} ${station.unit}`,
+                `ต่ำสุด: ${Math.min(...levels).toFixed(2)} ${station.unit}`,
+                `ระดับเฝ้าระวัง: ${station.warningLevel.toFixed(2)} ${station.unit}`,
+              ];
+            },
           },
         },
       },
@@ -356,24 +413,28 @@ function setupMap() {
     const reading = latest(station);
     const [, label] = statusFor(station, reading);
 
-    const detail = reading
-      ? `<br>ระดับน้ำ ${reading.level.toFixed(2)} ${station.unit}`
-      : "";
-
-    const marker = L.marker([
-      station.latitude,
-      station.longitude,
-    ])
+    const marker = L.marker(
+      [station.latitude, station.longitude],
+      {
+        icon: createStationIcon(station),
+      }
+    )
       .addTo(state.map)
       .bindPopup(`
         <strong>${station.name}</strong><br>
-        ${label}
-        ${detail}
+        สถานะ: ${label}
+        ${
+          reading
+            ? `<br>ระดับน้ำ: ${reading.level.toFixed(2)} ${station.unit}`
+            : ""
+        }
       `);
 
     marker.on("click", () => {
       selectStation(station.id);
     });
+
+    state.markers.push(marker);
   });
 }
 
