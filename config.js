@@ -11,7 +11,7 @@ window.WATER_APP_CONFIG = {
       longitude: 100.5018,
 
       // ใส่ URL Google Apps Script ที่ลงท้ายด้วย /exec
-      googleSheetCsv: "",
+      googleSheetCsv: "https://script.google.com/macros/s/AKfycbxVn_4dimc2nIuRkYIyQq6562--1chPWzX6preYVj0dooyY8BqiXEQnn-5nqAytjp4B/exec",
 
       unit: "เมตร",
       warningLevel: 3.0,
