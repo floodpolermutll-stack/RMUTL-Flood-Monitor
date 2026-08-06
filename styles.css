@@ -127,7 +127,7 @@ main {
   width: 106px;
   height: 106px;
   content: "";
-  background: var(--sky);
+  background: var(--station-soft);
   border-radius: 50%;
 }
 
@@ -143,7 +143,7 @@ main {
 }
 
 .station-card.selected {
-  border: 2px solid var(--teal);
+  border: 2px solid var(--station-color);
 }
 
 .station-card h2 {
@@ -153,6 +153,7 @@ main {
 }
 
 .station-card strong {
+  color: var(--station-color);
   font-size: 2rem;
 }
 
@@ -172,12 +173,12 @@ main {
   padding: 4px 7px;
   color: var(--muted);
   font-size: 0.7rem;
-  background: #edf6f7;
+  background: var(--station-soft);
   border-radius: 5px;
 }
 
 .range-values b {
-  color: var(--ink);
+  color: var(--station-color);
 }
 
 .station-card p {
@@ -280,90 +281,4 @@ input {
   background: var(--teal);
   border: 0;
   border-radius: 8px;
-  box-shadow: 0 4px 11px #087e8b40;
-}
-
-.dashboard-grid {
-  display: grid;
-  grid-template-columns: 1.25fr 0.9fr;
-  gap: 18px;
-}
-
-.chart-panel,
-.map-panel {
-  min-width: 0;
-  padding: 20px;
-}
-
-.panel-title {
-  display: flex;
-  align-items: start;
-  justify-content: space-between;
-  margin-bottom: 14px;
-}
-
-.panel-title h2 {
-  font-size: 1.15rem;
-}
-
-.panel-title span {
-  color: var(--muted);
-  font-size: 0.84rem;
-}
-
-.chart-date {
-  margin-top: 3px;
-  color: var(--muted);
-  font-size: 0.8rem;
-}
-
-.chart-wrap {
-  height: 330px;
-}
-
-.notice {
-  margin-top: 12px;
-  color: var(--muted);
-  font-size: 0.82rem;
-}
-
-#map {
-  height: 376px;
-  overflow: hidden;
-  border-radius: 9px;
-}
-
-footer {
-  padding: 18px;
-  color: var(--muted);
-  font-size: 0.8rem;
-  text-align: center;
-  border-top: 1px solid var(--line);
-}
-
-@media (max-width: 800px) {
-  .site-header {
-    flex-direction: column;
-    align-items: start;
-    padding-top: 30px;
-  }
-
-  .header-meta {
-    width: 100%;
-    text-align: left;
-  }
-
-  .station-grid,
-  .dashboard-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .controls {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .chart-wrap {
-    height: 285px;
-  }
-}
+  box-shadow: 0 
