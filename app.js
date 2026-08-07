@@ -1,4 +1,4 @@
-const { stations } = window.WATER_APP_CONFIG;
+const stations = window.WATER_APP_CONFIG.stations;
 
 const state = {
   selectedStationId: stations[0].id,
@@ -6,14 +6,13 @@ const state = {
   data: {},
   chart: null,
   map: null,
-  markers: [],
 };
 
 const $ = (selector) => document.querySelector(selector);
 
 function hexToRgba(hex, opacity) {
-  const value = hex.replace("#", "");
-  const number = parseInt(value, 16);
+  const color = hex.replace("#", "");
+  const number = parseInt(color, 16);
 
   const red = (number >> 16) & 255;
   const green = (number >> 8) & 255;
@@ -22,23 +21,23 @@ function hexToRgba(hex, opacity) {
   return `rgba(${red}, ${green}, ${blue}, ${opacity})`;
 }
 
-function createStationIcon(station) {
-  return L.divIcon({
-    className: "station-marker-wrap",
-    html: `
-      <span
-        class="station-marker"
-        style="--station-color: ${station.color};"
-      ></span>
-    `,
-    iconSize: [32, 32],
-    iconAnchor: [16, 16],
-    popupAnchor: [0, -17],
-  });
+function formatDate(value, options) {
+  const dateOptions = options || {
+    dateStyle: "medium",
+    timeStyle: "short",
+  };
+
+  return new Intl.DateTimeFormat("th-TH", dateOptions).format(
+    new Date(value)
+  );
 }
 
-function parseCsv(csv) {
-  const rows = csv
+function dateKey(value) {
+  return new Date(value).toISOString().slice(0, 10);
+}
+
+function parseCsv(csvText) {
+  const rows = csvText
     .trim()
     .split(/\r?\n/)
     .map((line) =>
@@ -50,15 +49,15 @@ function parseCsv(csv) {
   const headers = rows.shift().map((header) => header.toLowerCase());
 
   const timestampIndex = headers.findIndex((header) =>
-    ["timestamp", "datetime", "date", "วันที่เวลา"].includes(header)
+    ["timestamp", "datetime", "date"].includes(header)
   );
 
   const levelIndex = headers.findIndex((header) =>
-    ["level", "water_level", "ระดับน้ำ"].includes(header)
+    ["level", "water_level"].includes(header)
   );
 
-  if (timestampIndex < 0 || levelIndex < 0) {
-    throw new Error("ไม่พบคอลัมน์ timestamp และ level");
+  if (timestampIndex === -1 || levelIndex === -1) {
+    throw new Error("Google Sheet ต้องมีคอลัมน์ timestamp และ level");
   }
 
   return rows
@@ -80,37 +79,22 @@ async function loadStation(station) {
   });
 
   if (!response.ok) {
-    throw new Error("ไม่สามารถโหลด Google Sheets ได้");
+    throw new Error("ไม่สามารถโหลดข้อมูลได้");
   }
 
-  return parseCsv(await response.text());
+  const csvText = await response.text();
+
+  return parseCsv(csvText);
 }
 
-function formatDate(
-  value,
-  options = {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }
-) {
-  return new Intl.DateTimeFormat("th-TH", options).format(
-    new Date(value)
-  );
+function latestReading(station) {
+  const readings = state.data[station.id] || [];
+  return readings[readings.length - 1];
 }
 
-function dateKey(value) {
-  return new Date(value).toISOString().slice(0, 10);
-}
-
-function latest(station) {
-  const data = state.data[station.id] || [];
-  return data[data.length - 1];
-}
-
-function rangeFor(station) {
-  const levels = (state.data[station.id] || []).map(
-    (reading) => reading.level
-  );
+function getRange(station) {
+  const readings = state.data[station.id] || [];
+  const levels = readings.map((reading) => reading.level);
 
   if (!levels.length) {
     return null;
@@ -122,34 +106,48 @@ function rangeFor(station) {
   };
 }
 
-function statusFor(station, reading) {
+function getStatus(station, reading) {
   if (!station.deployed) {
-    return ["pending", "รอติดตั้ง"];
+    return {
+      className: "pending",
+      text: "รอติดตั้ง",
+    };
   }
 
   if (!reading) {
-    return ["offline", "ยังไม่มีข้อมูล"];
+    return {
+      className: "offline",
+      text: "ยังไม่มีข้อมูล",
+    };
   }
 
   if (reading.level >= station.warningLevel) {
-    return ["warning", "เฝ้าระวัง"];
+    return {
+      className: "warning",
+      text: "เฝ้าระวัง",
+    };
   }
 
-  return ["normal", "ปกติ"];
+  return {
+    className: "normal",
+    text: "ปกติ",
+  };
 }
 
 function renderCards() {
-  $("#stationCards").innerHTML = stations
-    .map((station) => {
-      const reading = latest(station);
-      const range = rangeFor(station);
-      const [status, label] = statusFor(station, reading);
+  const container = $("#stationCards");
 
-      const value = reading
+  container.innerHTML = stations
+    .map((station) => {
+      const reading = latestReading(station);
+      const range = getRange(station);
+      const status = getStatus(station, reading);
+
+      const levelText = reading
         ? `${reading.level.toFixed(2)} <small>${station.unit}</small>`
         : "—";
 
-      const update = reading
+      const updateText = reading
         ? `อัปเดต ${formatDate(reading.timestamp)}`
         : station.deployed
           ? "กรุณาตรวจสอบการเชื่อมต่อข้อมูล"
@@ -160,76 +158,88 @@ function renderCards() {
           class="station-card ${
             station.id === state.selectedStationId ? "selected" : ""
           }"
-          data-station="${station.id}"
+          data-station-id="${station.id}"
           style="
             --station-color: ${station.color};
             --station-soft: ${station.softColor};
           "
         >
-          <span class="status ${status}">${label}</span>
+          <span class="status ${status.className}">
+            ${status.text}
+          </span>
 
           <h2>${station.name}</h2>
 
-          <strong>${value}</strong>
+          <strong>${levelText}</strong>
 
           <div class="range-values">
             <span>
-              ต่ำสุด <b>${range ? range.min.toFixed(2) : "—"}</b>
+              ต่ำสุด
+              <b>${range ? range.min.toFixed(2) : "—"}</b>
               ${station.unit}
             </span>
 
             <span>
-              สูงสุด <b>${range ? range.max.toFixed(2) : "—"}</b>
+              สูงสุด
+              <b>${range ? range.max.toFixed(2) : "—"}</b>
               ${station.unit}
             </span>
           </div>
 
-          <p>${update}</p>
+          <p>${updateText}</p>
         </button>
       `;
     })
     .join("");
 
-  document.querySelectorAll("[data-station]").forEach((button) => {
+  document.querySelectorAll("[data-station-id]").forEach((button) => {
     button.addEventListener("click", () => {
-      selectStation(button.dataset.station);
+      selectStation(button.dataset.stationId);
     });
   });
 }
 
-function renderStationOptions() {
-  $("#stationSelect").innerHTML = stations
+function renderStationSelect() {
+  const select = $("#stationSelect");
+
+  select.innerHTML = stations
     .map(
       (station) =>
         `<option value="${station.id}">${station.name}</option>`
     )
     .join("");
 
-  $("#stationSelect").value = state.selectedStationId;
+  select.value = state.selectedStationId;
 }
 
-function renderDates() {
-  const readings = state.data[state.selectedStationId] || [];
+function renderDateInput() {
+  const stationReadings =
+    state.data[state.selectedStationId] || [];
 
-  const dates = [
-    ...new Set(readings.map((reading) => dateKey(reading.timestamp))),
+  const availableDates = [
+    ...new Set(
+      stationReadings.map((reading) => dateKey(reading.timestamp))
+    ),
   ].sort();
 
   const input = $("#dateInput");
 
-  if (!dates.length) {
+  if (!availableDates.length) {
     input.value = "";
     input.min = "";
     input.max = "";
     return;
   }
 
-  if (!state.selectedDate || !dates.includes(state.selectedDate)) {
-    state.selectedDate = dates[dates.length - 1];
+  if (
+    !state.selectedDate ||
+    !availableDates.includes(state.selectedDate)
+  ) {
+    state.selectedDate = availableDates[availableDates.length - 1];
   }
 
-  input.min = dates[0];
-  input.max = dates[dates.length - 1];
+  input.min = availableDates[0];
+  input.max = availableDates[availableDates.length - 1];
   input.value = state.selectedDate;
 }
 
@@ -239,14 +249,16 @@ function renderChart() {
   );
 
   const readings = (state.data[station.id] || []).filter(
-    (item) => dateKey(item.timestamp) === state.selectedDate
+    (reading) => dateKey(reading.timestamp) === state.selectedDate
   );
 
   $("#chartTitle").textContent =
     `กราฟระดับน้ำ: ${station.shortName}`;
 
   $("#chartDateLabel").textContent = state.selectedDate
-    ? formatDate(state.selectedDate, { dateStyle: "full" })
+    ? formatDate(state.selectedDate, {
+        dateStyle: "full",
+      })
     : "ยังไม่มีข้อมูล";
 
   $("#unitLabel").textContent = station.unit;
@@ -256,7 +268,7 @@ function renderChart() {
       "สถานีนี้ยังไม่ได้ติดตั้ง";
   } else if (!readings.length) {
     $("#chartNotice").textContent =
-      "ยังไม่มีข้อมูลสำหรับวันที่ที่เลือก";
+      "ยังไม่มีข้อมูลสำหรับวันที่เลือก";
   } else {
     $("#chartNotice").textContent =
       "ชี้หรือแตะจุดบนกราฟเพื่อดูรายละเอียด";
@@ -266,23 +278,22 @@ function renderChart() {
     state.chart.destroy();
   }
 
+  const levels = readings.map((reading) => reading.level);
   const canvas = $("#waterChart");
 
   const gradient = canvas
     .getContext("2d")
-    .createLinearGradient(0, 0, 0, 330);
+    .createLinearGradient(0, 0, 0, 340);
 
   gradient.addColorStop(0, hexToRgba(station.color, 0.35));
   gradient.addColorStop(1, hexToRgba(station.color, 0.02));
-
-  const levels = readings.map((item) => item.level);
 
   state.chart = new Chart(canvas, {
     type: "line",
 
     data: {
-      labels: readings.map((item) =>
-        formatDate(item.timestamp, {
+      labels: readings.map((reading) =>
+        formatDate(reading.timestamp, {
           timeStyle: "short",
         })
       ),
@@ -295,7 +306,7 @@ function renderChart() {
           backgroundColor: gradient,
           fill: true,
           borderWidth: 3,
-          tension: 0.36,
+          tension: 0.35,
           pointRadius: 4,
           pointHoverRadius: 7,
           pointBackgroundColor: "#ffffff",
@@ -357,7 +368,6 @@ function renderChart() {
               return [
                 `สูงสุด: ${Math.max(...levels).toFixed(2)} ${station.unit}`,
                 `ต่ำสุด: ${Math.min(...levels).toFixed(2)} ${station.unit}`,
-                `ระดับเฝ้าระวัง: ${station.warningLevel.toFixed(2)} ${station.unit}`,
               ];
             },
           },
@@ -376,10 +386,6 @@ function renderChart() {
           grid: {
             color: "#e7eff1",
           },
-
-          ticks: {
-            padding: 8,
-          },
         },
 
         x: {
@@ -393,6 +399,23 @@ function renderChart() {
         },
       },
     },
+  });
+}
+
+function createMarkerIcon(station) {
+  return L.divIcon({
+    className: "station-marker-wrap",
+
+    html: `
+      <span
+        class="station-marker"
+        style="--station-color: ${station.color};"
+      ></span>
+    `,
+
+    iconSize: [32, 32],
+    iconAnchor: [16, 16],
+    popupAnchor: [0, -17],
   });
 }
 
@@ -410,24 +433,24 @@ function setupMap() {
   ).addTo(state.map);
 
   stations.forEach((station) => {
-    const reading = latest(station);
-    const [, label] = statusFor(station, reading);
+    const reading = latestReading(station);
+    const status = getStatus(station, reading);
+
+    const popupText = reading
+      ? `ระดับน้ำ: ${reading.level.toFixed(2)} ${station.unit}`
+      : "ยังไม่มีข้อมูล";
 
     const marker = L.marker(
       [station.latitude, station.longitude],
       {
-        icon: createStationIcon(station),
+        icon: createMarkerIcon(station),
       }
     )
       .addTo(state.map)
       .bindPopup(`
         <strong>${station.name}</strong><br>
-        สถานะ: ${label}
-        ${
-          reading
-            ? `<br>ระดับน้ำ: ${reading.level.toFixed(2)} ${station.unit}`
-            : ""
-        }
+        สถานะ: ${status.text}<br>
+        ${popupText}
       `);
 
     marker.on("click", () => {
@@ -438,16 +461,18 @@ function setupMap() {
   });
 }
 
-function selectStation(id) {
-  state.selectedStationId = id;
+function selectStation(stationId) {
+  state.selectedStationId = stationId;
   state.selectedDate = "";
 
   renderCards();
-  renderStationOptions();
-  renderDates();
+  renderStationSelect();
+  renderDateInput();
   renderChart();
 
-  const station = stations.find((item) => item.id === id);
+  const station = stations.find(
+    (item) => item.id === stationId
+  );
 
   if (state.map) {
     state.map.flyTo(
@@ -457,31 +482,34 @@ function selectStation(id) {
   }
 }
 
-function changeDate(offset) {
-  const readings = state.data[state.selectedStationId] || [];
+function changeDate(direction) {
+  const readings =
+    state.data[state.selectedStationId] || [];
 
   const dates = [
-    ...new Set(readings.map((reading) => dateKey(reading.timestamp))),
+    ...new Set(
+      readings.map((reading) => dateKey(reading.timestamp))
+    ),
   ].sort();
 
-  const index = dates.indexOf(state.selectedDate);
+  const currentIndex = dates.indexOf(state.selectedDate);
 
-  if (index < 0) {
+  if (currentIndex === -1) {
     return;
   }
 
   const nextIndex = Math.max(
     0,
-    Math.min(dates.length - 1, index + offset)
+    Math.min(dates.length - 1, currentIndex + direction)
   );
 
   state.selectedDate = dates[nextIndex];
 
-  renderDates();
+  renderDateInput();
   renderChart();
 }
 
-function updateLiveClock() {
+function updateClock() {
   $("#liveClock").textContent =
     `เวลาปัจจุบัน ${new Intl.DateTimeFormat("th-TH", {
       dateStyle: "medium",
@@ -489,7 +517,7 @@ function updateLiveClock() {
     }).format(new Date())}`;
 }
 
-async function refresh() {
+async function refreshData() {
   $("#globalUpdated").textContent = "กำลังโหลดข้อมูล…";
 
   await Promise.all(
@@ -504,8 +532,8 @@ async function refresh() {
   );
 
   renderCards();
-  renderStationOptions();
-  renderDates();
+  renderStationSelect();
+  renderDateInput();
   renderChart();
 
   if (!state.map) {
@@ -513,11 +541,11 @@ async function refresh() {
   }
 
   const newest = stations
-    .map(latest)
+    .map((station) => latestReading(station))
     .filter(Boolean)
     .sort(
-      (a, b) =>
-        new Date(b.timestamp) - new Date(a.timestamp)
+      (first, second) =>
+        new Date(second.timestamp) - new Date(first.timestamp)
     )[0];
 
   $("#globalUpdated").textContent = newest
@@ -543,14 +571,13 @@ $("#nextDate").addEventListener("click", () => {
 });
 
 $("#refreshButton").addEventListener("click", () => {
-  refresh();
+  refreshData();
 });
 
-updateLiveClock();
+updateClock();
 
-setInterval(updateLiveClock, 1000);
+setInterval(updateClock, 1000);
 
-/* โหลดข้อมูลใหม่ทุก 5 นาที */
-setInterval(refresh, 300000);
+setInterval(refreshData, 300000);
 
-refresh();
+refreshData();
