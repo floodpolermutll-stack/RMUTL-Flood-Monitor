@@ -1,106 +1,372 @@
-<!doctype html>
-<html lang="th">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+:root {
+  --ink: #163044;
+  --muted: #6b7d8a;
+  --teal: #078593;
+  --bg: #f3f8fa;
+  --panel: #ffffff;
+  --line: #dce8ec;
+}
 
-    <title>ระบบติดตามระดับน้ำ</title>
+* {
+  box-sizing: border-box;
+}
 
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+body {
+  margin: 0;
+  color: var(--ink);
+  background:
+    radial-gradient(circle at top right, #d6f5f3, transparent 30%),
+    var(--bg);
+  font-family: "Noto Sans Thai", sans-serif;
+}
 
-    <link
-      href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
+h1,
+h2,
+p {
+  margin: 0;
+}
 
-    <link
-      rel="stylesheet"
-      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    />
+.site-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 42px max(5vw, 24px);
+  color: #ffffff;
+  background: linear-gradient(120deg, #052c42, #087e8b, #1ba7a8);
+}
 
-    <link rel="stylesheet" href="styles.css" />
-  </head>
+h1 {
+  font-size: clamp(1.8rem, 4vw, 2.7rem);
+}
 
-  <body>
-    <header class="site-header">
-      <div>
-        <p class="eyebrow">WATER MONITORING</p>
-        <h1>ระบบติดตามระดับน้ำ</h1>
-        <p class="subtitle">ข้อมูลจากสถานีวัดระดับน้ำแบบออนไลน์</p>
-      </div>
+.subtitle {
+  margin-top: 5px;
+  opacity: 0.85;
+}
 
-      <div class="header-info">
-        <p id="liveClock">กำลังโหลดเวลา…</p>
-        <p id="globalUpdated">กำลังโหลดข้อมูล…</p>
-      </div>
-    </header>
+.eyebrow {
+  color: #459ca5;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
 
-    <main>
-      <section class="station-grid" id="stationCards"></section>
+.site-header .eyebrow {
+  color: #b4eeee;
+}
 
-      <section class="control-panel">
-        <div class="control-item">
-          <label for="stationSelect">เลือกสถานี</label>
-          <select id="stationSelect"></select>
-        </div>
+.header-info {
+  display: grid;
+  gap: 8px;
+  text-align: right;
+}
 
-        <div class="control-item">
-          <label for="dateInput">เลือกวันที่ดูย้อนหลัง</label>
-          <input type="date" id="dateInput" />
-        </div>
+.header-info p {
+  padding: 8px 12px;
+  font-size: 0.82rem;
+  background: #ffffff1c;
+  border: 1px solid #ffffff3d;
+  border-radius: 8px;
+}
 
-        <div class="date-buttons">
-          <button id="previousDate" type="button">‹ วันก่อนหน้า</button>
-          <button id="nextDate" type="button">วันถัดไป ›</button>
-        </div>
+main {
+  max-width: 1280px;
+  margin: auto;
+  padding: 28px max(5vw, 24px) 44px;
+}
 
-        <button id="refreshButton" type="button">
-          รีเฟรชข้อมูล
-        </button>
-      </section>
+.station-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
 
-      <section class="content-grid">
-        <article class="panel chart-panel">
-          <div class="panel-heading">
-            <div>
-              <p class="eyebrow">WATER LEVEL GRAPH</p>
-              <h2 id="chartTitle">กราฟระดับน้ำ</h2>
-              <p id="chartDateLabel">กำลังโหลดข้อมูล</p>
-            </div>
+.station-card {
+  position: relative;
+  min-height: 215px;
+  padding: 19px;
+  overflow: hidden;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  transition: 0.2s;
+}
 
-            <span id="unitLabel">เมตร</span>
-          </div>
+.station-card::after {
+  position: absolute;
+  right: -28px;
+  bottom: -35px;
+  width: 120px;
+  height: 120px;
+  content: "";
+  background: var(--station-soft);
+  border-radius: 50%;
+}
 
-          <div class="chart-wrap">
-            <canvas id="waterChart"></canvas>
-          </div>
+.station-card > * {
+  position: relative;
+  z-index: 1;
+}
 
-          <p class="chart-note" id="chartNotice"></p>
-        </article>
+.station-card:hover,
+.station-card.selected {
+  border-color: var(--station-color);
+  box-shadow: 0 12px 28px #1630441e;
+  transform: translateY(-3px);
+}
 
-        <article class="panel map-panel">
-          <div class="panel-heading">
-            <div>
-              <p class="eyebrow">STATION LOCATION</p>
-              <h2>แผนที่ตำแหน่งสถานี</h2>
-            </div>
-          </div>
+.station-card h2 {
+  min-height: 52px;
+  margin: 12px 0 6px;
+  font-size: 1.02rem;
+}
 
-          <div id="map"></div>
-        </article>
-      </section>
-    </main>
+.station-card strong {
+  color: var(--station-color);
+  font-size: 2rem;
+}
 
-    <footer>
-      ระบบติดตามระดับน้ำ · ข้อมูลอ้างอิงจาก Google Sheets
-    </footer>
+.station-card small {
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 500;
+}
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+.station-card p {
+  margin-top: 9px;
+  color: var(--muted);
+  font-size: 0.76rem;
+}
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+.status {
+  display: inline-block;
+  padding: 3px 8px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  border-radius: 99px;
+}
 
-    <script src="config.js"></script>
-    <script src="app.js"></script>
-  </body>
-</html>
+.normal {
+  color: #157049;
+  background: #ddf6e9;
+}
+
+.warning {
+  color: #aa4627;
+  background: #ffe9df;
+}
+
+.pending,
+.offline {
+  color: #566974;
+  background: #eaf0f2;
+}
+
+.range-values {
+  display: flex;
+  gap: 7px;
+  margin-top: 8px;
+}
+
+.range-values span {
+  padding: 4px 7px;
+  color: var(--muted);
+  font-size: 0.68rem;
+  background: var(--station-soft);
+  border-radius: 5px;
+}
+
+.range-values b {
+  color: var(--station-color);
+}
+
+.control-panel {
+  display: flex;
+  align-items: end;
+  gap: 14px;
+  margin: 24px 0;
+  padding: 16px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
+
+.control-item {
+  flex: 1;
+}
+
+label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+select,
+input,
+button {
+  font: inherit;
+}
+
+select,
+input {
+  width: 100%;
+  padding: 10px;
+  color: var(--ink);
+  background: #ffffff;
+  border: 1px solid #cddade;
+  border-radius: 8px;
+}
+
+button {
+  cursor: pointer;
+}
+
+.date-buttons {
+  display: flex;
+  gap: 7px;
+}
+
+.date-buttons button {
+  padding: 10px;
+  color: var(--teal);
+  white-space: nowrap;
+  background: #effafa;
+  border: 1px solid #cde3e5;
+  border-radius: 8px;
+}
+
+#refreshButton {
+  padding: 10px 16px;
+  color: #ffffff;
+  font-weight: 600;
+  white-space: nowrap;
+  background: var(--teal);
+  border: 0;
+  border-radius: 8px;
+}
+
+.content-grid {
+  display: grid;
+  grid-template-columns: 1.3fr 0.9fr;
+  gap: 18px;
+}
+
+.panel {
+  min-width: 0;
+  padding: 20px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: 0 6px 20px #1630440a;
+}
+
+.panel-heading {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  margin-bottom: 15px;
+}
+
+.panel-heading h2 {
+  font-size: 1.15rem;
+}
+
+.panel-heading span,
+#chartDateLabel,
+.chart-note {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+#chartDateLabel {
+  margin-top: 4px;
+}
+
+.chart-wrap {
+  height: 340px;
+}
+
+.chart-note {
+  margin-top: 12px;
+}
+
+#map {
+  height: 395px;
+  overflow: hidden;
+  border-radius: 10px;
+}
+
+.station-marker-wrap {
+  background: transparent;
+  border: 0;
+}
+
+.station-marker {
+  position: relative;
+  display: block;
+  width: 22px;
+  height: 22px;
+  background: var(--station-color);
+  border: 4px solid #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 3px 10px #16304466;
+}
+
+.station-marker::after {
+  position: absolute;
+  top: 16px;
+  left: 5px;
+  width: 0;
+  height: 0;
+  content: "";
+  border-top: 10px solid var(--station-color);
+  border-right: 4px solid transparent;
+  border-left: 4px solid transparent;
+}
+
+footer {
+  padding: 20px;
+  color: var(--muted);
+  font-size: 0.8rem;
+  text-align: center;
+  border-top: 1px solid var(--line);
+}
+
+@media (max-width: 850px) {
+  .site-header {
+    flex-direction: column;
+    align-items: start;
+  }
+
+  .header-info {
+    width: 100%;
+    text-align: left;
+  }
+
+  .station-grid,
+  .content-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .control-panel {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .date-buttons {
+    width: 100%;
+  }
+
+  .date-buttons button {
+    flex: 1;
+  }
+
+  #refreshButton {
+    width: 100%;
+  }
+}
