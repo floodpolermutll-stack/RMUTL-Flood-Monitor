@@ -27,75 +27,46 @@
       <div>
         <p class="eyebrow">WATER MONITORING</p>
         <h1>ระบบติดตามระดับน้ำ</h1>
-        <p class="subtitle">ข้อมูลระดับน้ำจากสถานีตรวจวัดแบบออนไลน์</p>
+        <p class="subtitle">ข้อมูลจากสถานีวัดระดับน้ำแบบออนไลน์</p>
       </div>
 
-      <div class="header-meta">
-        <div class="live-clock">
-          <span class="pulse"></span>
-          <span id="liveClock">กำลังโหลดเวลา…</span>
-        </div>
-
-        <div class="updated" id="globalUpdated">
-          กำลังโหลดข้อมูล…
-        </div>
+      <div class="header-info">
+        <p id="liveClock">กำลังโหลดเวลา…</p>
+        <p id="globalUpdated">กำลังโหลดข้อมูล…</p>
       </div>
     </header>
 
     <main>
-      <section
-        class="station-grid"
-        id="stationCards"
-        aria-label="สถานีวัดระดับน้ำ"
-      ></section>
+      <section class="station-grid" id="stationCards"></section>
 
-      <section class="panel controls">
-        <div>
+      <section class="control-panel">
+        <div class="control-item">
           <label for="stationSelect">เลือกสถานี</label>
           <select id="stationSelect"></select>
         </div>
 
-        <div>
+        <div class="control-item">
           <label for="dateInput">เลือกวันที่ดูย้อนหลัง</label>
-
-          <div class="date-control">
-            <button
-              class="date-step"
-              type="button"
-              id="previousDate"
-              aria-label="วันก่อนหน้า"
-            >
-              ‹
-            </button>
-
-            <input type="date" id="dateInput" />
-
-            <button
-              class="date-step"
-              type="button"
-              id="nextDate"
-              aria-label="วันถัดไป"
-            >
-              ›
-            </button>
-          </div>
+          <input type="date" id="dateInput" />
         </div>
 
-        <button type="button" id="refreshButton">
+        <div class="date-buttons">
+          <button id="previousDate" type="button">‹ วันก่อนหน้า</button>
+          <button id="nextDate" type="button">วันถัดไป ›</button>
+        </div>
+
+        <button id="refreshButton" type="button">
           รีเฟรชข้อมูล
         </button>
       </section>
 
-      <section class="dashboard-grid">
+      <section class="content-grid">
         <article class="panel chart-panel">
-          <div class="panel-title">
+          <div class="panel-heading">
             <div>
-              <p class="eyebrow">ระดับน้ำ</p>
+              <p class="eyebrow">WATER LEVEL GRAPH</p>
               <h2 id="chartTitle">กราฟระดับน้ำ</h2>
-
-              <p class="chart-date" id="chartDateLabel">
-                กำลังโหลดข้อมูล
-              </p>
+              <p id="chartDateLabel">กำลังโหลดข้อมูล</p>
             </div>
 
             <span id="unitLabel">เมตร</span>
@@ -105,24 +76,24 @@
             <canvas id="waterChart"></canvas>
           </div>
 
-          <p class="notice" id="chartNotice"></p>
+          <p class="chart-note" id="chartNotice"></p>
         </article>
 
         <article class="panel map-panel">
-          <div class="panel-title">
+          <div class="panel-heading">
             <div>
-              <p class="eyebrow">ตำแหน่ง</p>
-              <h2>แผนที่สถานีวัดระดับน้ำ</h2>
+              <p class="eyebrow">STATION LOCATION</p>
+              <h2>แผนที่ตำแหน่งสถานี</h2>
             </div>
           </div>
 
-          <div id="map" aria-label="แผนที่ตำแหน่งสถานี"></div>
+          <div id="map"></div>
         </article>
       </section>
     </main>
 
     <footer>
-      ระบบแสดงผลระดับน้ำ · ข้อมูลอ้างอิงจาก Google Sheets
+      ระบบติดตามระดับน้ำ · ข้อมูลอ้างอิงจาก Google Sheets
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
