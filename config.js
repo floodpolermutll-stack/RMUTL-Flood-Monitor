@@ -14,6 +14,7 @@ window.WATER_APP_CONFIG = {
         "https://docs.google.com/spreadsheets/d/1TZGZodxs95my8uxbm0w5J6fpPDmIZUAQpwRSKdxPQh4/gviz/tq?tqx=out:csv&gid=994352728",
 
       unit: "เมตร",
+
       warningLevel: 2.5,
 
       color: "#0B84F3",
@@ -25,7 +26,7 @@ window.WATER_APP_CONFIG = {
       name: "ระดับน้ำพื้นที่น้ำท่วม จุดที่ 1",
       shortName: "จุดน้ำท่วม 1",
 
-      deployed: false,
+      deployed: true,
 
       latitude: 18.290000,
       longitude: 99.495000,
@@ -34,6 +35,7 @@ window.WATER_APP_CONFIG = {
         "https://docs.google.com/spreadsheets/d/1TZGZodxs95my8uxbm0w5J6fpPDmIZUAQpwRSKdxPQh4/gviz/tq?tqx=out:csv&gid=615401149",
 
       unit: "เมตร",
+
       warningLevel: 0.8,
 
       color: "#F97316",
@@ -45,7 +47,7 @@ window.WATER_APP_CONFIG = {
       name: "ระดับน้ำพื้นที่น้ำท่วม จุดที่ 2",
       shortName: "จุดน้ำท่วม 2",
 
-      deployed: false,
+      deployed: true,
 
       latitude: 18.295000,
       longitude: 99.497000,
@@ -54,6 +56,7 @@ window.WATER_APP_CONFIG = {
         "https://docs.google.com/spreadsheets/d/1TZGZodxs95my8uxbm0w5J6fpPDmIZUAQpwRSKdxPQh4/gviz/tq?tqx=out:csv&gid=1870805308",
 
       unit: "เมตร",
+
       warningLevel: 0.8,
 
       color: "#8B5CF6",
