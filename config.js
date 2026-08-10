@@ -10,7 +10,7 @@ window.WATER_APP_CONFIG = {
       longitude: 99.582243,
 
       googleSheetCsv:
-        "https://docs.google.com/spreadsheets/d/1TZGZodxs95my8uxbm0w5J6fpPDmIZUAQpwRSKdxPQh4/export?format=csv&gid=994352728",
+        "https://docs.google.com/spreadsheets/d/1TZGZodxs95my8uxbm0w5J6fpPDmIZUAQpwRSKdxPQh4/gviz/tq?tqx=out:csv&gid=994352728",
 
       unit: "เมตร",
       warningLevel: 2.5,
@@ -29,7 +29,7 @@ window.WATER_APP_CONFIG = {
       longitude: 99.495000,
 
       googleSheetCsv:
-        "https://docs.google.com/spreadsheets/d/1TZGZodxs95my8uxbm0w5J6fpPDmIZUAQpwRSKdxPQh4/export?format=csv&gid=615401149",
+        "https://docs.google.com/spreadsheets/d/1TZGZodxs95my8uxbm0w5J6fpPDmIZUAQpwRSKdxPQh4/gviz/tq?tqx=out:csv&gid=615401149",
 
       unit: "เมตร",
       warningLevel: 0.8,
@@ -48,7 +48,7 @@ window.WATER_APP_CONFIG = {
       longitude: 99.497000,
 
       googleSheetCsv:
-        "https://docs.google.com/spreadsheets/d/1TZGZodxs95my8uxbm0w5J6fpPDmIZUAQpwRSKdxPQh4/export?format=csv&gid=1870805308",
+        "https://docs.google.com/spreadsheets/d/1TZGZodxs95my8uxbm0w5J6fpPDmIZUAQpwRSKdxPQh4/gviz/tq?tqx=out:csv&gid=1870805308",
 
       unit: "เมตร",
       warningLevel: 0.8,
