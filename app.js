@@ -1,3 +1,8 @@
+// ============================================================
+// WATER LEVEL MONITORING DASHBOARD
+// app.js
+// ============================================================
+
 const stations = window.WATER_APP_CONFIG.stations;
 
 const state = {
@@ -33,7 +38,9 @@ function hexToRgba(hex, opacity) {
 // ============================================================
 
 function formatDate(value, options) {
-  if (!value) return "—";
+  if (!value) {
+    return "—";
+  }
 
   const date = new Date(value);
 
@@ -41,25 +48,28 @@ function formatDate(value, options) {
     return "—";
   }
 
-  const dateOptions = options || {
-    dateStyle: "medium",
-    timeStyle: "short",
-  };
-
   try {
+    const dateOptions = options || {
+      dateStyle: "medium",
+      timeStyle: "short",
+    };
+
     return new Intl.DateTimeFormat("th-TH", {
       ...dateOptions,
       timeZone: "Asia/Bangkok",
     }).format(date);
 
   } catch (error) {
+    console.warn("formatDate error:", value, error);
     return "—";
   }
 }
 
 
 function dateKey(value) {
-  if (!value) return "";
+  if (!value) {
+    return "";
+  }
 
   const date = new Date(value);
 
@@ -76,13 +86,13 @@ function dateKey(value) {
     }).formatToParts(date);
 
     const year =
-      parts.find((p) => p.type === "year")?.value || "";
+      parts.find((p) => p.type === "year")?.value;
 
     const month =
-      parts.find((p) => p.type === "month")?.value || "";
+      parts.find((p) => p.type === "month")?.value;
 
     const day =
-      parts.find((p) => p.type === "day")?.value || "";
+      parts.find((p) => p.type === "day")?.value;
 
     if (!year || !month || !day) {
       return "";
@@ -91,6 +101,7 @@ function dateKey(value) {
     return `${year}-${month}-${day}`;
 
   } catch (error) {
+    console.warn("dateKey error:", value, error);
     return "";
   }
 }
@@ -127,24 +138,49 @@ function normalizeTimeText(value) {
 
 
 function buildThaiTimestamp(dateText, timeText) {
-  const date = String(dateText || "")
+
+  let date = String(dateText || "")
     .replace(/"/g, "")
     .trim();
+
+  let time = String(timeText || "")
+    .replace(/"/g, "")
+    .trim();
+
 
   if (!date) {
     return null;
   }
 
-  const time =
-    normalizeTimeText(timeText);
+
+  // ----------------------------------------------------------
+  // กรณีวันที่และเวลาอยู่รวมกัน
+  // เช่น 10/8/2026, 14:23:16
+  // ----------------------------------------------------------
+
+  const combined = date.match(
+    /^(\d{1,2}\/\d{1,2}\/\d{4})\s*,\s*(\d{1,2}:\d{2}(?::\d{2})?)$/
+  );
+
+  if (combined) {
+    date = combined[1];
+    time = combined[2];
+  }
 
 
+  time = normalizeTimeText(time);
+
+
+  // ----------------------------------------------------------
   // DD/MM/YYYY
+  // ----------------------------------------------------------
+
   let match = date.match(
     /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/
   );
 
   if (match) {
+
     const day =
       String(match[1]).padStart(2, "0");
 
@@ -160,19 +196,26 @@ function buildThaiTimestamp(dateText, timeText) {
     const test =
       new Date(timestamp);
 
-    return Number.isNaN(test.getTime())
-      ? null
-      : timestamp;
+    if (Number.isNaN(test.getTime())) {
+      return null;
+    }
+
+    return timestamp;
   }
 
 
+  // ----------------------------------------------------------
   // YYYY-MM-DD
+  // ----------------------------------------------------------
+
   match = date.match(
     /^(\d{4})-(\d{1,2})-(\d{1,2})$/
   );
 
   if (match) {
-    const year = match[1];
+
+    const year =
+      String(match[1]);
 
     const month =
       String(match[2]).padStart(2, "0");
@@ -186,9 +229,11 @@ function buildThaiTimestamp(dateText, timeText) {
     const test =
       new Date(timestamp);
 
-    return Number.isNaN(test.getTime())
-      ? null
-      : timestamp;
+    if (Number.isNaN(test.getTime())) {
+      return null;
+    }
+
+    return timestamp;
   }
 
 
@@ -201,12 +246,14 @@ function buildThaiTimestamp(dateText, timeText) {
 // ============================================================
 
 function splitCsvLine(line) {
+
   const cells = [];
 
   let current = "";
   let insideQuotes = false;
 
   for (let i = 0; i < line.length; i++) {
+
     const char = line[i];
 
     if (char === '"') {
@@ -220,8 +267,7 @@ function splitCsvLine(line) {
       }
 
       else {
-        insideQuotes =
-          !insideQuotes;
+        insideQuotes = !insideQuotes;
       }
     }
 
@@ -229,10 +275,8 @@ function splitCsvLine(line) {
       char === "," &&
       !insideQuotes
     ) {
-      cells.push(
-        current.trim()
-      );
 
+      cells.push(current.trim());
       current = "";
     }
 
@@ -241,15 +285,14 @@ function splitCsvLine(line) {
     }
   }
 
-  cells.push(
-    current.trim()
-  );
+  cells.push(current.trim());
 
   return cells;
 }
 
 
 function normalizeHeader(value) {
+
   return String(value || "")
     .replace(/"/g, "")
     .replace(/\u00a0/g, " ")
@@ -260,10 +303,12 @@ function normalizeHeader(value) {
 
 
 function parseNumberCell(value) {
+
   let raw = String(value ?? "")
     .replace(/"/g, "")
     .replace(/\s+/g, "")
     .trim();
+
 
   if (
     raw === "" ||
@@ -273,56 +318,50 @@ function parseNumberCell(value) {
     return null;
   }
 
-  raw =
-    raw.replace(",", ".");
 
-  const number =
-    Number(raw);
+  raw = raw.replace(",", ".");
 
-  return Number.isFinite(number)
-    ? number
-    : null;
+
+  const number = Number(raw);
+
+
+  if (!Number.isFinite(number)) {
+    return null;
+  }
+
+
+  return number;
 }
 
 
 // ============================================================
-// PARSE CSV
+// PARSE GOOGLE SHEET CSV
 // ============================================================
 
 function parseCsv(csvText) {
 
-  if (
-    !csvText ||
-    !csvText.trim()
-  ) {
+  if (!csvText || !csvText.trim()) {
     return [];
   }
 
 
-  const rows =
-    csvText
-      .split(/\r?\n/)
-      .filter(
-        (line) =>
-          line.trim() !== ""
-      )
-      .map(splitCsvLine);
+  const rows = csvText
+    .split(/\r?\n/)
+    .filter((line) => line.trim() !== "")
+    .map(splitCsvLine);
 
 
   let headerRowIndex = -1;
 
 
-  // หาแถวหัวตาราง
-  for (
-    let i = 0;
-    i < rows.length;
-    i++
-  ) {
+  // ==========================================================
+  // หาแถว Header
+  // ==========================================================
+
+  for (let i = 0; i < rows.length; i++) {
 
     const headers =
-      rows[i].map(
-        normalizeHeader
-      );
+      rows[i].map(normalizeHeader);
 
     const text =
       headers.join(" ");
@@ -331,11 +370,6 @@ function parseCsv(csvText) {
     const hasDate =
       text.includes("วันที่") ||
       text.includes("date");
-
-
-    const hasTime =
-      text.includes("เวลา") ||
-      text.includes("time");
 
 
     const hasLatitude =
@@ -351,38 +385,37 @@ function parseCsv(csvText) {
 
     if (
       hasDate &&
-      hasTime &&
       hasLatitude &&
       hasLongitude
     ) {
+
       headerRowIndex = i;
       break;
     }
   }
 
 
-  if (
-    headerRowIndex === -1
-  ) {
-    throw new Error(
-      "ไม่พบหัวตาราง วันที่ / เวลา / Latitude / Longitude"
+  if (headerRowIndex === -1) {
+
+    console.error(
+      "ไม่พบหัวตาราง Google Sheet",
+      rows
     );
+
+    return [];
   }
 
 
   const headers =
-    rows[
-      headerRowIndex
-    ].map(
-      normalizeHeader
-    );
+    rows[headerRowIndex]
+      .map(normalizeHeader);
 
 
   // ==========================================================
-  // หาตำแหน่ง Column
+  // หา Column
   // ==========================================================
 
-  const dateIndex =
+  let dateIndex =
     headers.findIndex(
       (h) =>
         h.includes("วันที่") ||
@@ -390,7 +423,7 @@ function parseCsv(csvText) {
     );
 
 
-  const timeIndex =
+  let timeIndex =
     headers.findIndex(
       (h) =>
         h.includes("เวลา") ||
@@ -398,13 +431,17 @@ function parseCsv(csvText) {
     );
 
 
-  // *** จุดสำคัญ ***
+  // ==========================================================
+  // สำคัญ:
   // รองรับ "ระยะน้ำ (m)"
-  const distanceIndex =
+  // ==========================================================
+
+  let distanceIndex =
     headers.findIndex(
       (h) =>
         h.includes("ระยะน้ำ") ||
         h.includes("ระยะทาง") ||
+        h.includes("ระดับน้ำ") ||
         h.includes("distance") ||
         h.includes("water_level") ||
         h.includes("water level") ||
@@ -412,7 +449,7 @@ function parseCsv(csvText) {
     );
 
 
-  const latitudeIndex =
+  let latitudeIndex =
     headers.findIndex(
       (h) =>
         h.includes("latitude") ||
@@ -420,7 +457,7 @@ function parseCsv(csvText) {
     );
 
 
-  const longitudeIndex =
+  let longitudeIndex =
     headers.findIndex(
       (h) =>
         h.includes("longitude") ||
@@ -429,7 +466,44 @@ function parseCsv(csvText) {
     );
 
 
-  console.log("HEADERS:", headers);
+  // ==========================================================
+  // FALLBACK
+  //
+  // โครงสร้าง Sheet:
+  //
+  // A = วันที่
+  // B = เวลา
+  // C = ระยะน้ำ (m)
+  // D = Latitude
+  // E = Longitude
+  // ==========================================================
+
+  if (dateIndex === -1) {
+    dateIndex = 0;
+  }
+
+  if (timeIndex === -1) {
+    timeIndex = 1;
+  }
+
+  if (distanceIndex === -1) {
+    distanceIndex = 2;
+  }
+
+  if (latitudeIndex === -1) {
+    latitudeIndex = 3;
+  }
+
+  if (longitudeIndex === -1) {
+    longitudeIndex = 4;
+  }
+
+
+  console.log(
+    "HEADERS:",
+    headers
+  );
+
 
   console.log(
     "COLUMN INDEX:",
@@ -438,63 +512,102 @@ function parseCsv(csvText) {
       timeIndex,
       distanceIndex,
       latitudeIndex,
-      longitudeIndex,
+      longitudeIndex
     }
   );
-
-
-  if (
-    dateIndex === -1 ||
-    timeIndex === -1 ||
-    latitudeIndex === -1 ||
-    longitudeIndex === -1
-  ) {
-    throw new Error(
-      "หัวตาราง Google Sheet ไม่ครบ"
-    );
-  }
 
 
   const results = [];
 
 
   // ==========================================================
-  // อ่านข้อมูล
+  // อ่านแต่ละแถว
   // ==========================================================
 
   for (
-    let i =
-      headerRowIndex + 1;
-
+    let i = headerRowIndex + 1;
     i < rows.length;
-
     i++
   ) {
 
-    const row =
-      rows[i];
+    const row = rows[i];
 
 
-    const dateText =
-      String(
-        row[dateIndex] || ""
-      )
+    if (!row || row.length === 0) {
+      continue;
+    }
+
+
+    let dateText =
+      String(row[dateIndex] || "")
         .replace(/"/g, "")
         .trim();
 
 
-    const timeText =
-      String(
-        row[timeIndex] || ""
-      )
+    let timeText =
+      String(row[timeIndex] || "")
         .replace(/"/g, "")
         .trim();
+
+
+    let distanceRaw =
+      row[distanceIndex];
+
+
+    let latitudeRaw =
+      row[latitudeIndex];
+
+
+    let longitudeRaw =
+      row[longitudeIndex];
+
+
+    // ========================================================
+    // รองรับข้อมูลเก่า
+    //
+    // A = 10/8/2026, 14:23:16
+    // B = 5.513
+    // C = 18.362801
+    // D = 99.582278
+    // ========================================================
+
+    const oldDateTime =
+      dateText.match(
+        /^(\d{1,2}\/\d{1,2}\/\d{4})\s*,\s*(\d{1,2}:\d{2}(?::\d{2})?)$/
+      );
+
+
+    if (oldDateTime) {
+
+      dateText =
+        oldDateTime[1];
+
+
+      timeText =
+        oldDateTime[2];
+
+
+      distanceRaw =
+        row[1];
+
+
+      latitudeRaw =
+        row[2];
+
+
+      longitudeRaw =
+        row[3];
+    }
 
 
     if (!dateText) {
       continue;
     }
 
+
+    // ========================================================
+    // Timestamp
+    // ========================================================
 
     const timestamp =
       buildThaiTimestamp(
@@ -503,42 +616,40 @@ function parseCsv(csvText) {
       );
 
 
-    // ข้ามแถวเก่าที่รูปแบบผิด
     if (!timestamp) {
+
+      console.warn(
+        "ข้ามแถว วันที่/เวลาไม่ถูกต้อง:",
+        row
+      );
+
       continue;
     }
 
 
+    // ========================================================
     // ระยะน้ำ
-    let level = null;
+    // ========================================================
 
-    if (
-      distanceIndex !== -1
-    ) {
-
-      level =
-        parseNumberCell(
-          row[
-            distanceIndex
-          ]
-        );
-    }
+    const level =
+      parseNumberCell(
+        distanceRaw
+      );
 
 
+    // ========================================================
     // GPS
+    // ========================================================
+
     const latitude =
       parseNumberCell(
-        row[
-          latitudeIndex
-        ]
+        latitudeRaw
       );
 
 
     const longitude =
       parseNumberCell(
-        row[
-          longitudeIndex
-        ]
+        longitudeRaw
       );
 
 
@@ -546,19 +657,19 @@ function parseCsv(csvText) {
       timestamp,
       level,
       latitude,
-      longitude,
+      longitude
     });
   }
 
 
+  // ==========================================================
+  // เรียงเก่า -> ใหม่
+  // ==========================================================
+
   results.sort(
     (a, b) =>
-      new Date(
-        a.timestamp
-      ) -
-      new Date(
-        b.timestamp
-      )
+      new Date(a.timestamp) -
+      new Date(b.timestamp)
   );
 
 
@@ -573,7 +684,7 @@ function parseCsv(csvText) {
 
 
 // ============================================================
-// LOAD SHEET
+// LOAD GOOGLE SHEET
 // ============================================================
 
 async function loadStation(station) {
@@ -588,17 +699,25 @@ async function loadStation(station) {
 
   try {
 
+    const url =
+      `${station.googleSheetCsv}${
+        station.googleSheetCsv.includes("?")
+          ? "&"
+          : "?"
+      }_=${Date.now()}`;
+
+
     const response =
       await fetch(
-        station.googleSheetCsv,
+        url,
         {
-          cache:
-            "no-store",
+          cache: "no-store"
         }
       );
 
 
     if (!response.ok) {
+
       throw new Error(
         `HTTP ${response.status}`
       );
@@ -607,6 +726,11 @@ async function loadStation(station) {
 
     const csvText =
       await response.text();
+
+
+    console.log(
+      `โหลด ${station.id} สำเร็จ`
+    );
 
 
     return parseCsv(
@@ -618,7 +742,7 @@ async function loadStation(station) {
   catch (error) {
 
     console.error(
-      `Station ${station.id}:`,
+      `โหลด ${station.name} ไม่สำเร็จ:`,
       error
     );
 
@@ -629,7 +753,7 @@ async function loadStation(station) {
 
 
 // ============================================================
-// DATA
+// LATEST DATA
 // ============================================================
 
 function latestReading(station) {
@@ -640,9 +764,7 @@ function latestReading(station) {
     ] || [];
 
 
-  if (
-    readings.length === 0
-  ) {
+  if (readings.length === 0) {
     return null;
   }
 
@@ -662,11 +784,8 @@ function latestLevelReading(station) {
 
 
   for (
-    let i =
-      readings.length - 1;
-
+    let i = readings.length - 1;
     i >= 0;
-
     i--
   ) {
 
@@ -685,6 +804,10 @@ function latestLevelReading(station) {
 }
 
 
+// ============================================================
+// MIN / MAX
+// ============================================================
+
 function getRange(station) {
 
   const readings =
@@ -701,15 +824,11 @@ function getRange(station) {
       )
       .filter(
         (level) =>
-          Number.isFinite(
-            level
-          )
+          Number.isFinite(level)
       );
 
 
-  if (
-    levels.length === 0
-  ) {
+  if (levels.length === 0) {
     return null;
   }
 
@@ -717,14 +836,10 @@ function getRange(station) {
   return {
 
     min:
-      Math.min(
-        ...levels
-      ),
+      Math.min(...levels),
 
     max:
-      Math.max(
-        ...levels
-      ),
+      Math.max(...levels)
 
   };
 }
@@ -739,16 +854,11 @@ function getStatus(
   reading
 ) {
 
-  if (
-    !station.deployed
-  ) {
+  if (!station.deployed) {
 
     return {
-      className:
-        "pending",
-
-      text:
-        "รอติดตั้ง",
+      className: "pending",
+      text: "รอติดตั้ง"
     };
   }
 
@@ -756,11 +866,8 @@ function getStatus(
   if (!reading) {
 
     return {
-      className:
-        "offline",
-
-      text:
-        "ยังไม่มีข้อมูล",
+      className: "offline",
+      text: "ยังไม่มีข้อมูล"
     };
   }
 
@@ -777,27 +884,21 @@ function getStatus(
   ) {
 
     return {
-      className:
-        "warning",
-
-      text:
-        "เฝ้าระวัง",
+      className: "warning",
+      text: "เฝ้าระวัง"
     };
   }
 
 
   return {
-    className:
-      "normal",
-
-    text:
-      "ปกติ",
+    className: "normal",
+    text: "ปกติ"
   };
 }
 
 
 // ============================================================
-// CARDS
+// STATION CARDS
 // ============================================================
 
 function renderCards() {
@@ -841,6 +942,10 @@ function renderCards() {
             );
 
 
+          // ==================================================
+          // ค่า Level ล่าสุด
+          // ==================================================
+
           const levelText =
             levelReading &&
             Number.isFinite(
@@ -850,18 +955,17 @@ function renderCards() {
               ? `${levelReading.level.toFixed(3)}
                  <small>${station.unit}</small>`
 
-              : "—";
+              : `—
+                 <small>${station.unit}</small>`;
 
 
           const updateText =
             latest &&
             latest.timestamp
 
-              ? `อัปเดต ${
-                  formatDate(
-                    latest.timestamp
-                  )
-                }`
+              ? `อัปเดต ${formatDate(
+                  latest.timestamp
+                )}`
 
               : "ยังไม่มีข้อมูล";
 
@@ -870,25 +974,21 @@ function renderCards() {
 
             <button
 
-              class="station-card ${
-                station.id ===
-                state.selectedStationId
-
-                  ? "selected"
-
-                  : ""
-              }"
-
-              data-station-id="
-                ${station.id}
+              class="
+                station-card
+                ${
+                  station.id ===
+                  state.selectedStationId
+                    ? "selected"
+                    : ""
+                }
               "
 
-              style="
-                --station-color:
-                ${station.color};
+              data-station-id="${station.id}"
 
-                --station-soft:
-                ${station.softColor};
+              style="
+                --station-color:${station.color};
+                --station-soft:${station.softColor};
               "
             >
 
@@ -912,11 +1012,7 @@ function renderCards() {
               </strong>
 
 
-              <div
-                class="
-                  range-values
-                "
-              >
+              <div class="range-values">
 
                 <span>
 
@@ -957,7 +1053,6 @@ function renderCards() {
               <p>
                 ${updateText}
               </p>
-
 
             </button>
           `;
@@ -1009,9 +1104,7 @@ function renderStationSelect() {
       .map(
         (station) =>
 
-          `<option
-            value="${station.id}"
-          >
+          `<option value="${station.id}">
             ${station.name}
           </option>`
 
@@ -1062,9 +1155,7 @@ function renderDateInput() {
   }
 
 
-  if (
-    dates.length === 0
-  ) {
+  if (dates.length === 0) {
 
     input.value = "";
     input.min = "";
@@ -1147,48 +1238,64 @@ function renderChart() {
       );
 
 
-  $("#chartTitle").textContent =
-    `กราฟระดับน้ำ: ${station.shortName}`;
+  const title =
+    $("#chartTitle");
 
 
-  $("#chartDateLabel").textContent =
-    state.selectedDate
+  if (title) {
 
-      ? formatDate(
-          `${state.selectedDate}T12:00:00+07:00`,
-          {
-            dateStyle:
-              "full",
-          }
-        )
-
-      : "ยังไม่มีข้อมูล";
-
-
-  $("#unitLabel").textContent =
-    station.unit;
-
-
-  if (
-    readings.length === 0
-  ) {
-
-    $("#chartNotice").textContent =
-      "ยังไม่มีข้อมูลระดับน้ำสำหรับวันที่เลือก";
-
-  }
-
-  else {
-
-    $("#chartNotice").textContent =
-      "ชี้หรือแตะจุดบนกราฟเพื่อดูรายละเอียด";
-
+    title.textContent =
+      `กราฟระดับน้ำ: ${station.shortName}`;
   }
 
 
-  if (
-    state.chart
-  ) {
+  const dateLabel =
+    $("#chartDateLabel");
+
+
+  if (dateLabel) {
+
+    dateLabel.textContent =
+      state.selectedDate
+
+        ? formatDate(
+            `${state.selectedDate}T12:00:00+07:00`,
+            {
+              dateStyle: "full"
+            }
+          )
+
+        : "ยังไม่มีข้อมูล";
+  }
+
+
+  const unitLabel =
+    $("#unitLabel");
+
+
+  if (unitLabel) {
+
+    unitLabel.textContent =
+      station.unit;
+  }
+
+
+  const notice =
+    $("#chartNotice");
+
+
+  if (notice) {
+
+    notice.textContent =
+      readings.length > 0
+
+        ? "ชี้หรือแตะจุดบนกราฟเพื่อดูรายละเอียด"
+
+        : "ยังไม่มีข้อมูลระดับน้ำสำหรับวันที่เลือก";
+  }
+
+
+  if (state.chart) {
 
     state.chart.destroy();
 
@@ -1246,8 +1353,7 @@ function renderChart() {
       canvas,
       {
 
-        type:
-          "line",
+        type: "line",
 
 
         data: {
@@ -1258,14 +1364,9 @@ function renderChart() {
                 formatDate(
                   reading.timestamp,
                   {
-                    hour:
-                      "2-digit",
-
-                    minute:
-                      "2-digit",
-
-                    second:
-                      "2-digit",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    second: "2-digit"
                   }
                 )
             ),
@@ -1299,6 +1400,8 @@ function renderChart() {
               pointRadius:
                 4,
 
+              pointHoverRadius:
+                7
             },
 
 
@@ -1323,31 +1426,25 @@ function renderChart() {
                 2,
 
               pointRadius:
-                0,
+                0
+            }
 
-            },
-
-          ],
-
+          ]
         },
 
 
         options: {
 
-          responsive:
-            true,
+          responsive: true,
 
-          maintainAspectRatio:
-            false,
+          maintainAspectRatio: false,
 
 
           interaction: {
 
-            mode:
-              "index",
+            mode: "index",
 
-            intersect:
-              false,
+            intersect: false
 
           },
 
@@ -1356,10 +1453,9 @@ function renderChart() {
 
             legend: {
 
-              position:
-                "top",
+              position: "top"
 
-            },
+            }
 
           },
 
@@ -1368,18 +1464,16 @@ function renderChart() {
 
             y: {
 
-              beginAtZero:
-                true,
+              beginAtZero: true,
 
               title: {
 
-                display:
-                  true,
+                display: true,
 
                 text:
-                  station.unit,
+                  station.unit
 
-              },
+              }
 
             },
 
@@ -1388,16 +1482,15 @@ function renderChart() {
 
               grid: {
 
-                display:
-                  false,
+                display: false
 
-              },
+              }
 
-            },
+            }
 
-          },
+          }
 
-        },
+        }
 
       }
     );
@@ -1405,12 +1498,10 @@ function renderChart() {
 
 
 // ============================================================
-// MAP
+// MAP MARKER ICON
 // ============================================================
 
-function createMarkerIcon(
-  station
-) {
+function createMarkerIcon(station) {
 
   return L.divIcon({
 
@@ -1422,9 +1513,7 @@ function createMarkerIcon(
 
       <span
 
-        class="
-          station-marker
-        "
+        class="station-marker"
 
         style="
           --station-color:
@@ -1445,7 +1534,7 @@ function createMarkerIcon(
 
 
     popupAnchor:
-      [0, -17],
+      [0, -17]
 
   });
 }
@@ -1455,9 +1544,7 @@ function createMarkerIcon(
 // GPS ล่าสุดจาก GOOGLE SHEET
 // ============================================================
 
-function getStationCoordinates(
-  station
-) {
+function getStationCoordinates(station) {
 
   const readings =
     state.data[
@@ -1466,11 +1553,8 @@ function getStationCoordinates(
 
 
   for (
-    let i =
-      readings.length - 1;
-
+    let i = readings.length - 1;
     i >= 0;
-
     i--
   ) {
 
@@ -1495,11 +1579,14 @@ function getStationCoordinates(
 
       return [
         lat,
-        lng,
+        lng
       ];
     }
   }
 
+
+  // ถ้ายังไม่มี GPS จาก Sheet
+  // ใช้ค่าจาก config.js
 
   return [
 
@@ -1509,7 +1596,7 @@ function getStationCoordinates(
 
     Number(
       station.longitude
-    ),
+    )
 
   ];
 }
@@ -1521,9 +1608,7 @@ function getStationCoordinates(
 
 function setupMap() {
 
-  if (
-    state.map
-  ) {
+  if (state.map) {
     return;
   }
 
@@ -1533,8 +1618,7 @@ function setupMap() {
       (item) =>
         item.id ===
         state.selectedStationId
-    ) ||
-    stations[0];
+    ) || stations[0];
 
 
   const coords =
@@ -1554,9 +1638,16 @@ function setupMap() {
         zoom:
           16,
 
+        zoomControl:
+          true
+
       }
     );
 
+
+  // ==========================================================
+  // SATELLITE
+  // ==========================================================
 
   const satellite =
     L.tileLayer(
@@ -1569,12 +1660,16 @@ function setupMap() {
           19,
 
         attribution:
-          "Tiles © Esri",
+          "Tiles © Esri, Maxar, Earthstar Geographics"
 
       }
 
     );
 
+
+  // ==========================================================
+  // STREET MAP
+  // ==========================================================
 
   const street =
     L.tileLayer(
@@ -1587,13 +1682,14 @@ function setupMap() {
           19,
 
         attribution:
-          "© OpenStreetMap",
+          "© OpenStreetMap contributors"
 
       }
 
     );
 
 
+  // ดาวเทียมเป็นค่าเริ่มต้น
   satellite.addTo(
     state.map
   );
@@ -1607,7 +1703,7 @@ function setupMap() {
         satellite,
 
       "แผนที่":
-        street,
+        street
 
     },
 
@@ -1615,8 +1711,11 @@ function setupMap() {
 
     {
 
+      position:
+        "topright",
+
       collapsed:
-        false,
+        false
 
     }
 
@@ -1630,17 +1729,17 @@ function setupMap() {
 
 
 // ============================================================
-// MARKERS
+// MAP MARKERS
 // ============================================================
 
 function renderMapMarkers() {
 
-  if (
-    !state.map
-  ) {
+  if (!state.map) {
     return;
   }
 
+
+  // ลบ Marker เก่า
 
   state.markers.forEach(
     (marker) => {
@@ -1678,11 +1777,11 @@ function renderMapMarkers() {
 
 
       const lat =
-        coords[0];
+        Number(coords[0]);
 
 
       const lng =
-        coords[1];
+        Number(coords[1]);
 
 
       if (
@@ -1713,12 +1812,24 @@ function renderMapMarkers() {
           : "ยังไม่มีข้อมูลระดับน้ำ";
 
 
+      const updateText =
+        latest &&
+        latest.timestamp
+
+          ? `อัปเดต:
+             ${formatDate(
+               latest.timestamp
+             )}`
+
+          : "ยังไม่มีข้อมูลเวลา";
+
+
       const marker =
         L.marker(
 
           [
             lat,
-            lng,
+            lng
           ],
 
           {
@@ -1726,7 +1837,7 @@ function renderMapMarkers() {
             icon:
               createMarkerIcon(
                 station
-              ),
+              )
 
           }
 
@@ -1740,28 +1851,41 @@ function renderMapMarkers() {
 
       marker.bindPopup(`
 
-        <strong>
-          ${station.name}
-        </strong>
+        <div
+          style="
+            min-width:220px;
+            line-height:1.7;
+          "
+        >
 
-        <br>
+          <strong>
+            ${station.name}
+          </strong>
 
-        สถานะ:
-        ${status.text}
+          <br>
 
-        <br>
+          สถานะ:
+          ${status.text}
 
-        ${levelText}
+          <br>
 
-        <br>
+          ${levelText}
 
-        Latitude:
-        ${lat.toFixed(6)}
+          <br>
 
-        <br>
+          ${updateText}
 
-        Longitude:
-        ${lng.toFixed(6)}
+          <hr>
+
+          Latitude:
+          ${lat.toFixed(6)}
+
+          <br>
+
+          Longitude:
+          ${lng.toFixed(6)}
+
+        </div>
 
       `);
 
@@ -1791,9 +1915,7 @@ function renderMapMarkers() {
 // SELECT STATION
 // ============================================================
 
-function selectStation(
-  stationId
-) {
+function selectStation(stationId) {
 
   state.selectedStationId =
     stationId;
@@ -1834,10 +1956,10 @@ function selectStation(
   if (
     state.map &&
     Number.isFinite(
-      coords[0]
+      Number(coords[0])
     ) &&
     Number.isFinite(
-      coords[1]
+      Number(coords[1])
     )
   ) {
 
@@ -1845,7 +1967,12 @@ function selectStation(
 
       coords,
 
-      17
+      17,
+
+      {
+        duration:
+          1
+      }
 
     );
   }
@@ -1853,12 +1980,10 @@ function selectStation(
 
 
 // ============================================================
-// DATE CHANGE
+// CHANGE DATE
 // ============================================================
 
-function changeDate(
-  direction
-) {
+function changeDate(direction) {
 
   const readings =
     state.data[
@@ -1883,15 +2008,18 @@ function changeDate(
     ].sort();
 
 
+  if (dates.length === 0) {
+    return;
+  }
+
+
   const currentIndex =
     dates.indexOf(
       state.selectedDate
     );
 
 
-  if (
-    currentIndex === -1
-  ) {
+  if (currentIndex === -1) {
     return;
   }
 
@@ -1938,31 +2066,42 @@ function updateClock() {
   }
 
 
-  clock.textContent =
-    `เวลาปัจจุบัน ${
-      new Intl.DateTimeFormat(
-        "th-TH",
-        {
+  try {
 
-          timeZone:
-            "Asia/Bangkok",
+    clock.textContent =
+      `เวลาปัจจุบัน ${
+        new Intl.DateTimeFormat(
+          "th-TH",
+          {
 
-          dateStyle:
-            "medium",
+            timeZone:
+              "Asia/Bangkok",
 
-          timeStyle:
-            "medium",
+            dateStyle:
+              "medium",
 
-        }
-      ).format(
-        new Date()
-      )
-    }`;
+            timeStyle:
+              "medium"
+
+          }
+        ).format(
+          new Date()
+        )
+      }`;
+
+  }
+
+  catch (error) {
+
+    clock.textContent =
+      "เวลาปัจจุบัน";
+
+  }
 }
 
 
 // ============================================================
-// REFRESH
+// REFRESH DATA
 // ============================================================
 
 async function refreshData() {
@@ -1971,22 +2110,22 @@ async function refreshData() {
     $("#globalUpdated");
 
 
-  if (
-    globalUpdated
-  ) {
+  if (globalUpdated) {
 
     globalUpdated.textContent =
       "กำลังโหลดข้อมูล…";
   }
 
 
+  // ==========================================================
+  // โหลดทั้ง 3 สถานี
+  // ==========================================================
+
   await Promise.all(
 
     stations.map(
 
-      async (
-        station
-      ) => {
+      async (station) => {
 
         state.data[
           station.id
@@ -2002,6 +2141,20 @@ async function refreshData() {
   );
 
 
+  // ==========================================================
+  // DEBUG
+  // ==========================================================
+
+  console.log(
+    "STATE DATA:",
+    state.data
+  );
+
+
+  // ==========================================================
+  // Render
+  // ==========================================================
+
   renderCards();
 
   renderStationSelect();
@@ -2011,9 +2164,7 @@ async function refreshData() {
   renderChart();
 
 
-  if (
-    !state.map
-  ) {
+  if (!state.map) {
 
     setupMap();
 
@@ -2026,6 +2177,10 @@ async function refreshData() {
   }
 
 
+  // ==========================================================
+  // หาเวลาข้อมูลล่าสุด
+  // ==========================================================
+
   const newest =
     stations
 
@@ -2037,7 +2192,27 @@ async function refreshData() {
       )
 
       .filter(
-        Boolean
+        (reading) => {
+
+          if (
+            !reading ||
+            !reading.timestamp
+          ) {
+            return false;
+          }
+
+
+          const date =
+            new Date(
+              reading.timestamp
+            );
+
+
+          return !Number.isNaN(
+            date.getTime()
+          );
+
+        }
       )
 
       .sort(
@@ -2050,12 +2225,11 @@ async function refreshData() {
           new Date(
             a.timestamp
           )
+
       )[0];
 
 
-  if (
-    globalUpdated
-  ) {
+  if (globalUpdated) {
 
     globalUpdated.textContent =
       newest
@@ -2075,9 +2249,16 @@ async function refreshData() {
 // EVENTS
 // ============================================================
 
-$("#stationSelect")
-  ?.addEventListener(
+const stationSelect =
+  $("#stationSelect");
+
+
+if (stationSelect) {
+
+  stationSelect.addEventListener(
+
     "change",
+
     (event) => {
 
       selectStation(
@@ -2085,12 +2266,21 @@ $("#stationSelect")
       );
 
     }
+
   );
+}
 
 
-$("#dateInput")
-  ?.addEventListener(
+const dateInput =
+  $("#dateInput");
+
+
+if (dateInput) {
+
+  dateInput.addEventListener(
+
     "change",
+
     (event) => {
 
       state.selectedDate =
@@ -2100,44 +2290,69 @@ $("#dateInput")
       renderChart();
 
     }
+
   );
+}
 
 
-$("#previousDate")
-  ?.addEventListener(
+const previousDate =
+  $("#previousDate");
+
+
+if (previousDate) {
+
+  previousDate.addEventListener(
+
     "click",
+
     () => {
 
-      changeDate(
-        -1
-      );
+      changeDate(-1);
 
     }
+
   );
+}
 
 
-$("#nextDate")
-  ?.addEventListener(
+const nextDate =
+  $("#nextDate");
+
+
+if (nextDate) {
+
+  nextDate.addEventListener(
+
     "click",
+
     () => {
 
-      changeDate(
-        1
-      );
+      changeDate(1);
 
     }
+
   );
+}
 
 
-$("#refreshButton")
-  ?.addEventListener(
+const refreshButton =
+  $("#refreshButton");
+
+
+if (refreshButton) {
+
+  refreshButton.addEventListener(
+
     "click",
+
     () => {
 
       refreshData();
 
     }
+
   );
+}
 
 
 // ============================================================
@@ -2146,14 +2361,20 @@ $("#refreshButton")
 
 updateClock();
 
+
+// นาฬิกาทุก 1 วินาที
 setInterval(
   updateClock,
   1000
 );
 
+
+// โหลดข้อมูลใหม่ทุก 1 นาที
 setInterval(
   refreshData,
   60000
 );
 
+
+// โหลดครั้งแรก
 refreshData();
