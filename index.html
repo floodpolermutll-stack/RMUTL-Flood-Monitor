@@ -1,106 +1,328 @@
 <!doctype html>
 <html lang="th">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <title>ระบบติดตามระดับน้ำ</title>
+<head>
 
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <meta charset="UTF-8" />
 
-    <link
-      href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  />
 
-    <link
-      rel="stylesheet"
-      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    />
+  <title>ระบบติดตามระดับน้ำ</title>
 
-    <link rel="stylesheet" href="styles.css" />
-  </head>
 
-  <body>
-    <header class="site-header">
-      <div>
-        <p class="eyebrow">WATER MONITORING</p>
-        <h1>ระบบติดตามระดับน้ำ</h1>
-        <p class="subtitle">ข้อมูลจากสถานีวัดระดับน้ำแบบออนไลน์</p>
+  <!-- ======================================================
+       FONT
+  ======================================================= -->
+
+  <link
+    rel="preconnect"
+    href="https://fonts.googleapis.com"
+  />
+
+  <link
+    rel="preconnect"
+    href="https://fonts.gstatic.com"
+    crossorigin
+  />
+
+  <link
+    href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
+
+
+  <!-- ======================================================
+       LEAFLET CSS
+  ======================================================= -->
+
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
+
+
+  <!-- ======================================================
+       CSS ของเว็บ
+  ======================================================= -->
+
+  <link
+    rel="stylesheet"
+    href="styles.css"
+  />
+
+</head>
+
+
+<body>
+
+
+  <!-- ======================================================
+       HEADER
+  ======================================================= -->
+
+  <header class="site-header">
+
+    <div>
+
+      <p class="eyebrow">
+        WATER MONITORING
+      </p>
+
+      <h1>
+        ระบบติดตามระดับน้ำ
+      </h1>
+
+      <p class="subtitle">
+        ข้อมูลจากสถานีวัดระดับน้ำแบบออนไลน์
+      </p>
+
+    </div>
+
+
+    <div class="header-info">
+
+      <p id="liveClock">
+        กำลังโหลดเวลา…
+      </p>
+
+      <p id="globalUpdated">
+        กำลังโหลดข้อมูล…
+      </p>
+
+    </div>
+
+  </header>
+
+
+  <!-- ======================================================
+       MAIN
+  ======================================================= -->
+
+  <main>
+
+
+    <!-- ====================================================
+         STATION CARDS
+    ===================================================== -->
+
+    <section
+      class="station-grid"
+      id="stationCards"
+    ></section>
+
+
+    <!-- ====================================================
+         CONTROL
+    ===================================================== -->
+
+    <section class="control-panel">
+
+
+      <!-- เลือกสถานี -->
+
+      <div class="control-item">
+
+        <label for="stationSelect">
+          เลือกสถานี
+        </label>
+
+        <select id="stationSelect"></select>
+
       </div>
 
-      <div class="header-info">
-        <p id="liveClock">กำลังโหลดเวลา…</p>
-        <p id="globalUpdated">กำลังโหลดข้อมูล…</p>
+
+      <!-- เลือกวันที่ -->
+
+      <div class="control-item">
+
+        <label for="dateInput">
+          เลือกวันที่ดูย้อนหลัง
+        </label>
+
+        <input
+          type="date"
+          id="dateInput"
+        />
+
       </div>
-    </header>
 
-    <main>
-      <section class="station-grid" id="stationCards"></section>
 
-      <section class="control-panel">
-        <div class="control-item">
-          <label for="stationSelect">เลือกสถานี</label>
-          <select id="stationSelect"></select>
-        </div>
+      <!-- ปุ่มวันก่อนหน้า / วันถัดไป -->
 
-        <div class="control-item">
-          <label for="dateInput">เลือกวันที่ดูย้อนหลัง</label>
-          <input type="date" id="dateInput" />
-        </div>
+      <div class="date-buttons">
 
-        <div class="date-buttons">
-          <button id="previousDate" type="button">‹ วันก่อนหน้า</button>
-          <button id="nextDate" type="button">วันถัดไป ›</button>
-        </div>
-
-        <button id="refreshButton" type="button">
-          รีเฟรชข้อมูล
+        <button
+          id="previousDate"
+          type="button"
+        >
+          ‹ วันก่อนหน้า
         </button>
-      </section>
 
-      <section class="content-grid">
-        <article class="panel chart-panel">
-          <div class="panel-heading">
-            <div>
-              <p class="eyebrow">WATER LEVEL GRAPH</p>
-              <h2 id="chartTitle">กราฟระดับน้ำ</h2>
-              <p id="chartDateLabel">กำลังโหลดข้อมูล</p>
-            </div>
 
-            <span id="unitLabel">เมตร</span>
+        <button
+          id="nextDate"
+          type="button"
+        >
+          วันถัดไป ›
+        </button>
+
+      </div>
+
+
+      <!-- Refresh -->
+
+      <button
+        id="refreshButton"
+        type="button"
+      >
+        รีเฟรชข้อมูล
+      </button>
+
+
+    </section>
+
+
+    <!-- ====================================================
+         CONTENT
+    ===================================================== -->
+
+    <section class="content-grid">
+
+
+      <!-- ==================================================
+           GRAPH
+      =================================================== -->
+
+      <article class="panel chart-panel">
+
+
+        <div class="panel-heading">
+
+          <div>
+
+            <p class="eyebrow">
+              WATER LEVEL GRAPH
+            </p>
+
+            <h2 id="chartTitle">
+              กราฟระดับน้ำ
+            </h2>
+
+            <p id="chartDateLabel">
+              กำลังโหลดข้อมูล
+            </p>
+
           </div>
 
-          <div class="chart-wrap">
-            <canvas id="waterChart"></canvas>
+
+          <span id="unitLabel">
+            เมตร
+          </span>
+
+        </div>
+
+
+        <div class="chart-wrap">
+
+          <canvas id="waterChart"></canvas>
+
+        </div>
+
+
+        <p
+          class="chart-note"
+          id="chartNotice"
+        ></p>
+
+
+      </article>
+
+
+      <!-- ==================================================
+           MAP
+      =================================================== -->
+
+      <article class="panel map-panel">
+
+
+        <div class="panel-heading">
+
+          <div>
+
+            <p class="eyebrow">
+              STATION LOCATION
+            </p>
+
+            <h2>
+              แผนที่ตำแหน่งสถานี
+            </h2>
+
           </div>
 
-          <p class="chart-note" id="chartNotice"></p>
-        </article>
+        </div>
 
-        <article class="panel map-panel">
-          <div class="panel-heading">
-            <div>
-              <p class="eyebrow">STATION LOCATION</p>
-              <h2>แผนที่ตำแหน่งสถานี</h2>
-            </div>
-          </div>
 
-          <div id="map"></div>
-        </article>
-      </section>
-    </main>
+        <div id="map"></div>
 
-    <footer>
-      ระบบติดตามระดับน้ำ · ข้อมูลอ้างอิงจาก Google Sheets
-    </footer>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+      </article>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-    <script src="config.js?v=20260811-1"></script>
-    <script src="app.js?v=20260811-1"></script>
-  </body>
+    </section>
+
+
+  </main>
+
+
+  <!-- ======================================================
+       FOOTER
+  ======================================================= -->
+
+  <footer>
+
+    ระบบติดตามระดับน้ำ ·
+    ข้อมูลอ้างอิงจาก Google Sheets
+
+  </footer>
+
+
+  <!-- ======================================================
+       CHART.JS
+  ======================================================= -->
+
+  <script
+    src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"
+  ></script>
+
+
+  <!-- ======================================================
+       LEAFLET
+  ======================================================= -->
+
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+  ></script>
+
+
+  <!-- ======================================================
+       CONFIG
+       เปลี่ยน Version เพื่อป้องกัน Cache
+  ======================================================= -->
+
+  <script src="config.js?v=20260811-3"></script>
+
+
+  <!-- ======================================================
+       APP
+       เปลี่ยน Version เพื่อบังคับโหลด app.js ตัวใหม่
+  ======================================================= -->
+
+  <script src="app.js?v=20260811-3"></script>
+
+
+</body>
+
 </html>
