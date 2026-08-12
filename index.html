@@ -2,6 +2,7 @@
 <html lang="th">
 
 <head>
+
   <meta charset="UTF-8">
 
   <meta
@@ -16,7 +17,7 @@
 
   <title>RMUTL Flood Monitoring</title>
 
-  <!-- Google Fonts -->
+
   <link
     rel="preconnect"
     href="https://fonts.googleapis.com"
@@ -33,480 +34,705 @@
     rel="stylesheet"
   >
 
-  <!-- Leaflet -->
+
   <link
     rel="stylesheet"
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
   >
 
-  <!-- CSS -->
+
   <link
     rel="stylesheet"
-    href="styles.css?v=20260812-30"
+    href="styles.css?v=20260812-40"
   >
+
 </head>
+
 
 <body>
 
-  <!-- =====================================================
-       HEADER
-  ====================================================== -->
 
-  <header class="site-header">
+<!-- =========================================================
+     HEADER
+========================================================= -->
 
-    <div class="header-content">
+<header class="site-header">
 
-      <div class="brand-area">
+  <div class="header-content">
 
-        <div class="brand-icon">
-          ≋
+
+    <!-- BRAND -->
+
+    <div class="brand-area">
+
+      <div class="brand-icon">
+        ≋
+      </div>
+
+
+      <div>
+
+        <p class="header-eyebrow">
+          RMUTL FLOOD MONITORING
+        </p>
+
+        <h1>
+          ระบบติดตามระดับน้ำ
+        </h1>
+
+        <p class="subtitle">
+          ระบบตรวจวัดและติดตามสถานการณ์ระดับน้ำแบบออนไลน์
+        </p>
+
+      </div>
+
+    </div>
+
+
+
+    <!-- RIGHT HEADER -->
+
+    <div class="header-right">
+
+
+      <div class="header-status">
+
+        <div class="header-status-item">
+
+          <span class="online-dot"></span>
+
+          <div>
+
+            <small>
+              สถานะระบบ
+            </small>
+
+            <strong>
+              Online
+            </strong>
+
+          </div>
+
         </div>
 
-        <div>
 
-          <p class="header-eyebrow">
-            RMUTL FLOOD MONITORING
-          </p>
+        <div class="header-status-item">
 
-          <h1>
-            ระบบติดตามระดับน้ำ
-          </h1>
+          <div>
 
-          <p class="subtitle">
-            ระบบตรวจวัดและติดตามสถานการณ์ระดับน้ำแบบออนไลน์
-          </p>
+            <small>
+              เวลาปัจจุบัน
+            </small>
+
+            <strong id="liveClock">
+              กำลังโหลด...
+            </strong>
+
+          </div>
 
         </div>
 
       </div>
 
 
-      <div class="header-right">
 
-        <div class="header-status">
+      <!-- ===================================================
+           TOOLS
+      ==================================================== -->
 
-          <div class="header-status-item">
-
-            <span class="online-dot"></span>
-
-            <div>
-              <small>สถานะระบบ</small>
-              <strong>Online</strong>
-            </div>
-
-          </div>
-
-
-          <div class="header-status-item">
-
-            <div>
-              <small>เวลาปัจจุบัน</small>
-
-              <strong id="liveClock">
-                กำลังโหลด...
-              </strong>
-            </div>
-
-          </div>
-
-        </div>
+      <div class="header-tools">
 
 
         <!-- =================================================
-             HEADER TOOLS
+             DOWNLOAD
         ================================================== -->
 
-        <div class="header-tools">
+        <div class="download-menu">
+
+          <button
+            id="downloadMenuButton"
+            class="header-tool-button download-main-button"
+            type="button"
+            aria-expanded="false"
+          >
+
+            <span class="download-main-icon">
+              ↓
+            </span>
 
 
-          <!-- ===============================================
-               DOWNLOAD
-          ================================================ -->
+            <div class="download-main-text">
 
-          <div class="download-menu">
+              <small>
+                EXPORT DATA
+              </small>
 
-            <button
-              id="downloadMenuButton"
-              class="header-tool-button download-main-button"
-              type="button"
-              aria-expanded="false"
-            >
+              <strong>
+                ดาวน์โหลดข้อมูล
+              </strong>
 
-              <span class="download-main-icon">
-                ↓
-              </span>
+            </div>
 
-              <div class="download-main-text">
 
-                <small>
-                  EXPORT DATA
-                </small>
+            <span class="download-chevron">
+              ▾
+            </span>
+
+          </button>
+
+
+
+          <!-- DROPDOWN -->
+
+          <div
+            id="downloadMenu"
+            class="download-dropdown"
+          >
+
+
+            <!-- HEADER -->
+
+            <div class="download-dropdown-header">
+
+              <div>
+
+                <span class="download-dropdown-eyebrow">
+                  DATA EXPORT
+                </span>
 
                 <strong>
                   ดาวน์โหลดข้อมูล
                 </strong>
 
+                <p>
+                  เลือกรูปแบบข้อมูลที่ต้องการดาวน์โหลด
+                </p>
+
               </div>
 
-              <span class="download-chevron">
-                ▾
-              </span>
+
+              <button
+                id="closeDownloadMenu"
+                class="download-close"
+                type="button"
+              >
+                ×
+              </button>
+
+            </div>
+
+
+
+            <!-- CURRENT INFO -->
+
+            <div class="download-current-info">
+
+
+              <div class="download-info-item">
+
+                <span>
+                  วันที่ที่เลือก
+                </span>
+
+                <strong id="downloadCurrentDate">
+                  —
+                </strong>
+
+              </div>
+
+
+              <div class="download-info-item">
+
+                <span>
+                  สถานีที่เลือก
+                </span>
+
+                <strong id="downloadCurrentStation">
+                  —
+                </strong>
+
+              </div>
+
+
+            </div>
+
+
+
+            <div class="download-section-title">
+              ข้อมูลสำหรับวิเคราะห์
+            </div>
+
+
+
+            <!-- SELECTED -->
+
+            <button
+              id="downloadSelectedCsv"
+              class="download-option"
+              type="button"
+            >
+
+              <div class="download-option-icon csv-icon">
+                CSV
+              </div>
+
+
+              <div class="download-option-content">
+
+                <strong>
+                  ข้อมูลสถานีที่เลือก
+                </strong>
+
+                <p>
+                  วันที่ เวลา ระดับน้ำ Latitude และ Longitude
+                </p>
+
+                <span>
+                  เหมาะสำหรับเปิดใน Excel
+                </span>
+
+              </div>
+
+
+              <div class="download-option-arrow">
+                ↓
+              </div>
 
             </button>
 
 
-            <div
-              id="downloadMenu"
-              class="download-dropdown"
+
+            <!-- ALL -->
+
+            <button
+              id="downloadAllCsv"
+              class="download-option"
+              type="button"
             >
 
-              <!-- HEADER -->
-
-              <div class="download-dropdown-header">
-
-                <div>
-
-                  <span class="download-dropdown-eyebrow">
-                    DATA EXPORT
-                  </span>
-
-                  <strong>
-                    ดาวน์โหลดข้อมูล
-                  </strong>
-
-                  <p>
-                    เลือกรูปแบบข้อมูลที่ต้องการดาวน์โหลด
-                  </p>
-
-                </div>
-
-
-                <button
-                  id="closeDownloadMenu"
-                  class="download-close"
-                  type="button"
-                  aria-label="ปิดเมนู"
-                >
-                  ×
-                </button>
-
+              <div class="download-option-icon all-icon">
+                ALL
               </div>
 
 
-              <!-- CURRENT INFO -->
+              <div class="download-option-content">
 
-              <div class="download-current-info">
+                <strong>
+                  ข้อมูลรวมทั้ง 3 สถานี
+                </strong>
 
-                <div class="download-info-item">
+                <p>
+                  รวมข้อมูลทุกสถานีของวันที่เลือก
+                </p>
 
-                  <span>
-                    วันที่ที่เลือก
-                  </span>
-
-                  <strong id="downloadCurrentDate">
-                    —
-                  </strong>
-
-                </div>
-
-
-                <div class="download-info-item">
-
-                  <span>
-                    สถานีที่เลือก
-                  </span>
-
-                  <strong id="downloadCurrentStation">
-                    —
-                  </strong>
-
-                </div>
-
-              </div>
-
-
-              <div class="download-section-title">
-                ข้อมูลสำหรับวิเคราะห์
-              </div>
-
-
-              <!-- SELECTED STATION -->
-
-              <button
-                id="downloadSelectedCsv"
-                class="download-option"
-                type="button"
-              >
-
-                <div class="download-option-icon csv-icon">
-                  CSV
-                </div>
-
-                <div class="download-option-content">
-
-                  <strong>
-                    ข้อมูลสถานีที่เลือก
-                  </strong>
-
-                  <p>
-                    วันที่ เวลา ระดับน้ำ และพิกัด GPS
-                  </p>
-
-                  <span>
-                    เหมาะสำหรับเปิดใน Excel
-                  </span>
-
-                </div>
-
-                <div class="download-option-arrow">
-                  ↓
-                </div>
-
-              </button>
-
-
-              <!-- ALL -->
-
-              <button
-                id="downloadAllCsv"
-                class="download-option"
-                type="button"
-              >
-
-                <div class="download-option-icon all-icon">
-                  ALL
-                </div>
-
-                <div class="download-option-content">
-
-                  <strong>
-                    ข้อมูลรวมทั้ง 3 สถานี
-                  </strong>
-
-                  <p>
-                    รวมข้อมูลของทุกสถานีไว้ในไฟล์เดียว
-                  </p>
-
-                  <span>
-                    CSV · พร้อมนำไปวิเคราะห์
-                  </span>
-
-                </div>
-
-                <div class="download-option-arrow">
-                  ↓
-                </div>
-
-              </button>
-
-
-              <!-- SUMMARY -->
-
-              <button
-                id="downloadSummaryCsv"
-                class="download-option"
-                type="button"
-              >
-
-                <div class="download-option-icon summary-download-icon">
-                  Σ
-                </div>
-
-                <div class="download-option-content">
-
-                  <strong>
-                    สรุปข้อมูลรายวัน
-                  </strong>
-
-                  <p>
-                    ล่าสุด เฉลี่ย ต่ำสุด สูงสุด และจำนวนข้อมูล
-                  </p>
-
-                  <span>
-                    เหมาะสำหรับจัดทำรายงาน
-                  </span>
-
-                </div>
-
-                <div class="download-option-arrow">
-                  ↓
-                </div>
-
-              </button>
-
-
-              <div class="download-divider"></div>
-
-
-              <div class="download-section-title">
-                สำรองข้อมูล
-              </div>
-
-
-              <!-- JSON -->
-
-              <button
-                id="downloadJson"
-                class="download-option"
-                type="button"
-              >
-
-                <div class="download-option-icon json-icon">
-                  { }
-                </div>
-
-                <div class="download-option-content">
-
-                  <strong>
-                    Backup JSON
-                  </strong>
-
-                  <p>
-                    สำรองข้อมูลทั้งหมดที่ Dashboard โหลดอยู่
-                  </p>
-
-                  <span>
-                    สำหรับสำรองหรือใช้กับระบบอื่น
-                  </span>
-
-                </div>
-
-                <div class="download-option-arrow">
-                  ↓
-                </div>
-
-              </button>
-
-
-              <div class="download-footer">
-
-                <span class="download-safe-icon">
-                  ✓
+                <span>
+                  CSV · พร้อมนำไปวิเคราะห์
                 </span>
 
-                <div>
+              </div>
 
-                  <strong>
-                    ปลอดภัยต่อข้อมูล
-                  </strong>
 
-                  <span>
-                    การดาวน์โหลดไม่แก้ไขข้อมูลใน Google Sheets
-                  </span>
+              <div class="download-option-arrow">
+                ↓
+              </div>
 
-                </div>
+            </button>
+
+
+
+            <!-- SUMMARY -->
+
+            <button
+              id="downloadSummaryCsv"
+              class="download-option"
+              type="button"
+            >
+
+              <div class="download-option-icon summary-download-icon">
+                Σ
+              </div>
+
+
+              <div class="download-option-content">
+
+                <strong>
+                  สรุปข้อมูลรายวัน
+                </strong>
+
+                <p>
+                  ล่าสุด เฉลี่ย ต่ำสุด สูงสุด และจำนวนข้อมูล
+                </p>
+
+                <span>
+                  เหมาะสำหรับจัดทำรายงาน
+                </span>
+
+              </div>
+
+
+              <div class="download-option-arrow">
+                ↓
+              </div>
+
+            </button>
+
+
+
+            <div class="download-divider"></div>
+
+
+
+            <div class="download-section-title">
+              สำรองข้อมูล
+            </div>
+
+
+
+            <!-- JSON -->
+
+            <button
+              id="downloadJson"
+              class="download-option"
+              type="button"
+            >
+
+              <div class="download-option-icon json-icon">
+                { }
+              </div>
+
+
+              <div class="download-option-content">
+
+                <strong>
+                  Backup JSON
+                </strong>
+
+                <p>
+                  สำรองข้อมูลทั้งหมดที่ Dashboard โหลดอยู่
+                </p>
+
+                <span>
+                  สำหรับเก็บสำรองหรือใช้กับระบบอื่น
+                </span>
+
+              </div>
+
+
+              <div class="download-option-arrow">
+                ↓
+              </div>
+
+            </button>
+
+
+
+            <!-- FOOTER -->
+
+            <div class="download-footer">
+
+              <span class="download-safe-icon">
+                ✓
+              </span>
+
+
+              <div>
+
+                <strong>
+                  ปลอดภัยต่อข้อมูล
+                </strong>
+
+                <span>
+                  การดาวน์โหลดไม่แก้ไขข้อมูลใน Google Sheets
+                </span>
 
               </div>
 
             </div>
+
 
           </div>
 
-
-          <!-- ===============================================
-               THEME
-          ================================================ -->
-
-          <button
-            id="themeToggle"
-            class="theme-toggle"
-            type="button"
-            aria-label="เปลี่ยนธีม"
-          >
-
-            <span
-              id="themeIcon"
-              class="theme-icon"
-            >
-              ☾
-            </span>
-
-            <div>
-
-              <small>
-                THEME
-              </small>
-
-              <strong id="themeText">
-                มืด
-              </strong>
-
-            </div>
-
-          </button>
-
         </div>
+
+
+
+        <!-- =================================================
+             THEME
+        ================================================== -->
+
+        <button
+          id="themeToggle"
+          class="theme-toggle"
+          type="button"
+        >
+
+          <span
+            id="themeIcon"
+            class="theme-icon"
+          >
+            ☾
+          </span>
+
+
+          <div>
+
+            <small>
+              THEME
+            </small>
+
+            <strong id="themeText">
+              มืด
+            </strong>
+
+          </div>
+
+        </button>
+
+
+      </div>
+
+
+    </div>
+
+  </div>
+
+</header>
+
+
+
+<!-- =========================================================
+     MAIN
+========================================================= -->
+
+<main>
+
+
+  <!-- OVERVIEW -->
+
+  <section class="dashboard-heading">
+
+    <div>
+
+      <p class="section-eyebrow">
+        OVERVIEW
+      </p>
+
+      <h2>
+        ภาพรวมสถานีตรวจวัด
+      </h2>
+
+      <p>
+        ข้อมูลล่าสุดจาก Google Sheets ของแต่ละสถานี
+      </p>
+
+    </div>
+
+
+    <div
+      id="globalUpdated"
+      class="last-update"
+    >
+      กำลังโหลดข้อมูล...
+    </div>
+
+  </section>
+
+
+
+  <!-- CARDS -->
+
+  <section
+    id="stationCards"
+    class="station-grid"
+  ></section>
+
+
+
+  <!-- FILTER -->
+
+  <section class="filter-panel">
+
+    <div class="filter-title">
+
+      <div class="filter-icon">
+        ☰
+      </div>
+
+
+      <div>
+
+        <strong>
+          ตัวเลือกการแสดงผล
+        </strong>
+
+        <span>
+          เลือกสถานีและวันที่ที่ต้องการ
+        </span>
 
       </div>
 
     </div>
 
-  </header>
 
 
-  <!-- =====================================================
-       MAIN
-  ====================================================== -->
+    <div class="filter-controls">
 
-  <main>
 
-    <!-- OVERVIEW -->
+      <div class="control-item">
 
-    <section class="dashboard-heading">
+        <label for="stationSelect">
+          สถานี
+        </label>
 
-      <div>
-
-        <p class="section-eyebrow">
-          OVERVIEW
-        </p>
-
-        <h2>
-          ภาพรวมสถานีตรวจวัด
-        </h2>
-
-        <p>
-          ข้อมูลล่าสุดจาก Google Sheets ของแต่ละสถานี
-        </p>
+        <select id="stationSelect"></select>
 
       </div>
 
 
-      <div
-        id="globalUpdated"
-        class="last-update"
+
+      <div class="control-item">
+
+        <label for="dateInput">
+          วันที่
+        </label>
+
+        <input
+          id="dateInput"
+          type="date"
+        >
+
+      </div>
+
+
+
+      <div class="date-buttons">
+
+        <button
+          id="previousDate"
+          class="secondary-button"
+          type="button"
+        >
+          ‹ วันก่อนหน้า
+        </button>
+
+
+        <button
+          id="nextDate"
+          class="secondary-button"
+          type="button"
+        >
+          วันถัดไป ›
+        </button>
+
+      </div>
+
+
+
+      <button
+        id="refreshButton"
+        class="primary-button"
+        type="button"
       >
-        กำลังโหลดข้อมูล...
-      </div>
-
-    </section>
+        ↻ รีเฟรช
+      </button>
 
 
-    <!-- STATION CARDS -->
+    </div>
 
-    <section
-      class="station-grid"
-      id="stationCards"
-    ></section>
+  </section>
 
 
-    <!-- FILTER -->
 
-    <section class="filter-panel">
+  <!-- MODE -->
 
-      <div class="filter-title">
+  <section class="mode-panel">
 
-        <div class="filter-icon">
-          ☰
-        </div>
+    <div>
+
+      <p class="section-eyebrow">
+        GRAPH VIEW
+      </p>
+
+      <strong>
+        รูปแบบการแสดงกราฟ
+      </strong>
+
+      <span>
+        ข้อมูลถูกคำนวณเป็นค่าเฉลี่ยทุก 1 ชั่วโมง
+      </span>
+
+    </div>
+
+
+
+    <div class="mode-switch">
+
+      <button
+        id="chartModeStation"
+        class="mode-button active"
+        type="button"
+      >
+        สถานีที่เลือก
+      </button>
+
+
+      <button
+        id="chartModeAll"
+        class="mode-button"
+        type="button"
+      >
+        เปรียบเทียบ 3 สถานี
+      </button>
+
+    </div>
+
+  </section>
+
+
+
+  <!-- SUMMARY -->
+
+  <section
+    id="chartSummary"
+    class="summary-grid"
+  ></section>
+
+
+
+  <!-- CONTENT -->
+
+  <section class="content-grid">
+
+
+    <!-- CHART -->
+
+    <article class="dashboard-panel">
+
+      <div class="panel-heading">
 
         <div>
 
-          <strong>
-            ตัวเลือกการแสดงผล
-          </strong>
+          <p class="section-eyebrow">
+            HOURLY WATER LEVEL
+          </p>
 
-          <span>
-            เลือกสถานีและวันที่ที่ต้องการ
+          <h2 id="chartTitle">
+            กราฟระดับน้ำ
+          </h2>
+
+          <p id="chartDateLabel">
+            กำลังโหลดข้อมูล...
+          </p>
+
+        </div>
+
+
+        <div class="unit-pill">
+
+          <span class="unit-dot"></span>
+
+          <span id="unitLabel">
+            เมตร
           </span>
 
         </div>
@@ -514,261 +740,115 @@
       </div>
 
 
-      <div class="filter-controls">
 
-        <div class="control-item">
+      <div class="chart-container">
 
-          <label for="stationSelect">
-            สถานี
-          </label>
-
-          <select id="stationSelect"></select>
-
-        </div>
-
-
-        <div class="control-item">
-
-          <label for="dateInput">
-            วันที่
-          </label>
-
-          <input
-            id="dateInput"
-            type="date"
-          >
-
-        </div>
-
-
-        <div class="date-buttons">
-
-          <button
-            id="previousDate"
-            class="secondary-button"
-            type="button"
-          >
-            ‹ วันก่อนหน้า
-          </button>
-
-          <button
-            id="nextDate"
-            class="secondary-button"
-            type="button"
-          >
-            วันถัดไป ›
-          </button>
-
-        </div>
-
-
-        <button
-          id="refreshButton"
-          class="primary-button"
-          type="button"
-        >
-          ↻ รีเฟรช
-        </button>
+        <canvas id="waterChart"></canvas>
 
       </div>
 
-    </section>
 
 
-    <!-- MODE -->
+      <div
+        id="chartNotice"
+        class="chart-notice"
+      >
+        กำลังโหลดข้อมูล...
+      </div>
 
-    <section class="mode-panel">
+    </article>
 
-      <div>
 
-        <p class="section-eyebrow">
-          GRAPH VIEW
-        </p>
 
-        <strong>
-          รูปแบบการแสดงกราฟ
-        </strong>
+    <!-- MAP -->
 
-        <span>
-          ข้อมูลถูกคำนวณเป็นค่าเฉลี่ยทุก 1 ชั่วโมง
+    <article class="dashboard-panel">
+
+      <div class="panel-heading">
+
+        <div>
+
+          <p class="section-eyebrow">
+            LIVE LOCATION
+          </p>
+
+          <h2>
+            ตำแหน่งสถานี
+          </h2>
+
+          <p>
+            พิกัดล่าสุดจาก Google Sheets
+          </p>
+
+        </div>
+
+
+        <span class="satellite-badge">
+          SATELLITE
         </span>
 
       </div>
 
 
-      <div class="mode-switch">
 
-        <button
-          id="chartModeStation"
-          class="mode-button active"
-          type="button"
-        >
-          สถานีที่เลือก
-        </button>
+      <div id="map"></div>
 
-        <button
-          id="chartModeAll"
-          class="mode-button"
-          type="button"
-        >
-          เปรียบเทียบ 3 สถานี
-        </button>
+
+
+      <div class="map-description">
+
+        <span class="online-dot"></span>
+
+        หมุดแสดงพิกัดล่าสุดจากแต่ละสถานี
 
       </div>
 
-    </section>
+    </article>
 
 
-    <!-- SUMMARY -->
+  </section>
 
-    <section
-      id="chartSummary"
-      class="summary-grid"
-    ></section>
 
+</main>
 
-    <!-- CHART + MAP -->
 
-    <section class="content-grid">
 
-      <!-- GRAPH -->
+<!-- FOOTER -->
 
-      <article class="dashboard-panel">
+<footer>
 
-        <div class="panel-heading">
+  <div>
+    RMUTL Flood Monitoring System
+  </div>
 
-          <div>
+  <span>
+    Google Sheets · อัปเดตอัตโนมัติทุก 1 นาที
+  </span>
 
-            <p class="section-eyebrow">
-              HOURLY WATER LEVEL
-            </p>
+</footer>
 
-            <h2 id="chartTitle">
-              กราฟระดับน้ำ
-            </h2>
 
-            <p id="chartDateLabel">
-              กำลังโหลดข้อมูล...
-            </p>
 
-          </div>
+<!-- LIBRARIES -->
 
+<script
+  src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"
+></script>
 
-          <div class="unit-pill">
+<script
+  src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+></script>
 
-            <span class="unit-dot"></span>
 
-            <span id="unitLabel">
-              เมตร
-            </span>
+<!-- CONFIG เดิม -->
 
-          </div>
+<script src="config.js?v=20260812-40"></script>
 
-        </div>
 
+<!-- APP -->
 
-        <div class="chart-container">
+<script src="app.js?v=20260812-40"></script>
 
-          <canvas id="waterChart"></canvas>
-
-        </div>
-
-
-        <div
-          id="chartNotice"
-          class="chart-notice"
-        >
-          กำลังโหลดข้อมูล...
-        </div>
-
-      </article>
-
-
-      <!-- MAP -->
-
-      <article class="dashboard-panel">
-
-        <div class="panel-heading">
-
-          <div>
-
-            <p class="section-eyebrow">
-              LIVE LOCATION
-            </p>
-
-            <h2>
-              ตำแหน่งสถานี
-            </h2>
-
-            <p>
-              พิกัดล่าสุดจาก Google Sheets
-            </p>
-
-          </div>
-
-
-          <span class="satellite-badge">
-            SATELLITE
-          </span>
-
-        </div>
-
-
-        <div id="map"></div>
-
-
-        <div class="map-description">
-
-          <span class="online-dot"></span>
-
-          หมุดแสดงพิกัดล่าสุดที่ได้รับจากแต่ละสถานี
-
-        </div>
-
-      </article>
-
-    </section>
-
-  </main>
-
-
-  <!-- FOOTER -->
-
-  <footer>
-
-    <div>
-      RMUTL Flood Monitoring System
-    </div>
-
-    <span>
-      Google Sheets · อัปเดตข้อมูลอัตโนมัติทุก 1 นาที
-    </span>
-
-  </footer>
-
-
-  <!-- Chart.js -->
-
-  <script
-    src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"
-  ></script>
-
-
-  <!-- Leaflet -->
-
-  <script
-    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-  ></script>
-
-
-  <!-- CONFIG เดิม -->
-
-  <script src="config.js?v=20260812-30"></script>
-
-
-  <!-- APP -->
-
-  <script src="app.js?v=20260812-30"></script>
 
 </body>
 
