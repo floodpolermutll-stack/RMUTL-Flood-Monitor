@@ -1,38 +1,62 @@
-// ============================================================
-// RMUTL FLOOD MONITOR
-// Modern Dashboard
-// Google Sheets + Hourly Chart + Map + Download + Theme
-// ============================================================
-
 const stations =
   window.WATER_APP_CONFIG.stations;
 
+
 const state = {
-  selectedStationId: stations[0].id,
-  selectedDate: "",
-  chartMode: "station",
-  data: {},
-  chart: null,
-  map: null,
-  markers: []
+
+  selectedStationId:
+    stations[0].id,
+
+  selectedDate:
+    "",
+
+  chartMode:
+    "station",
+
+  data:
+    {},
+
+  chart:
+    null,
+
+  map:
+    null,
+
+  markers:
+    []
+
 };
 
-const $ = (selector) =>
-  document.querySelector(selector);
+
+const $ =
+  selector =>
+    document.querySelector(selector);
 
 
 // ============================================================
 // COLOR
 // ============================================================
 
-function hexToRgba(hex, opacity) {
+function hexToRgba(
+  hex,
+  opacity
+) {
 
   const color =
-    String(hex || "#000000")
-      .replace("#", "");
+    String(
+      hex || "#000000"
+    ).replace(
+      "#",
+      ""
+    );
+
 
   const number =
-    parseInt(color, 16);
+    parseInt(
+      color,
+      16
+    );
+
 
   const r =
     (number >> 16) & 255;
@@ -43,7 +67,11 @@ function hexToRgba(hex, opacity) {
   const b =
     number & 255;
 
-  return `rgba(${r},${g},${b},${opacity})`;
+
+  return (
+    `rgba(${r},${g},${b},${opacity})`
+  );
+
 }
 
 
@@ -51,62 +79,90 @@ function hexToRgba(hex, opacity) {
 // DATE
 // ============================================================
 
-function formatDate(value, options) {
+function formatDate(
+  value,
+  options
+) {
 
   if (!value) {
+
     return "—";
+
   }
+
 
   const date =
     new Date(value);
+
 
   if (
     Number.isNaN(
       date.getTime()
     )
   ) {
+
     return "—";
+
   }
+
 
   try {
 
     return new Intl.DateTimeFormat(
       "th-TH",
       {
+
         ...(options || {
-          dateStyle: "medium",
-          timeStyle: "short"
+
+          dateStyle:
+            "medium",
+
+          timeStyle:
+            "short"
+
         }),
-        timeZone: "Asia/Bangkok"
+
+        timeZone:
+          "Asia/Bangkok"
+
       }
     ).format(date);
 
   }
 
-  catch (error) {
+  catch {
 
     return "—";
 
   }
+
 }
+
 
 
 function dateKey(value) {
 
   if (!value) {
+
     return "";
+
   }
+
 
   const date =
     new Date(value);
+
 
   if (
     Number.isNaN(
       date.getTime()
     )
   ) {
+
     return "";
+
   }
+
 
   try {
 
@@ -114,46 +170,74 @@ function dateKey(value) {
       new Intl.DateTimeFormat(
         "en-CA",
         {
-          timeZone: "Asia/Bangkok",
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit"
+
+          timeZone:
+            "Asia/Bangkok",
+
+          year:
+            "numeric",
+
+          month:
+            "2-digit",
+
+          day:
+            "2-digit"
+
         }
-      ).formatToParts(date);
+      ).formatToParts(
+        date
+      );
+
 
     const year =
       parts.find(
-        p => p.type === "year"
+        p =>
+          p.type ===
+          "year"
       )?.value;
+
 
     const month =
       parts.find(
-        p => p.type === "month"
+        p =>
+          p.type ===
+          "month"
       )?.value;
+
 
     const day =
       parts.find(
-        p => p.type === "day"
+        p =>
+          p.type ===
+          "day"
       )?.value;
+
 
     if (
       !year ||
       !month ||
       !day
     ) {
+
       return "";
+
     }
 
-    return `${year}-${month}-${day}`;
+
+    return (
+      `${year}-${month}-${day}`
+    );
 
   }
 
-  catch (error) {
+  catch {
 
     return "";
 
   }
+
 }
+
 
 
 function getThaiHour(value) {
@@ -161,13 +245,17 @@ function getThaiHour(value) {
   const date =
     new Date(value);
 
+
   if (
     Number.isNaN(
       date.getTime()
     )
   ) {
+
     return null;
+
   }
+
 
   try {
 
@@ -175,11 +263,21 @@ function getThaiHour(value) {
       new Intl.DateTimeFormat(
         "en-US",
         {
-          timeZone: "Asia/Bangkok",
-          hour: "2-digit",
-          hour12: false
+
+          timeZone:
+            "Asia/Bangkok",
+
+          hour:
+            "2-digit",
+
+          hour12:
+            false
+
         }
-      ).format(date);
+      ).format(
+        date
+      );
+
 
     const number =
       Number(
@@ -188,54 +286,92 @@ function getThaiHour(value) {
           : hour
       );
 
+
     return (
-      Number.isInteger(number) &&
-      number >= 0 &&
-      number <= 23
+      Number.isInteger(
+        number
+      )
     )
       ? number
       : null;
 
   }
 
-  catch (error) {
+  catch {
 
     return null;
 
   }
+
 }
+
 
 
 function normalizeTimeText(value) {
 
   const text =
-    String(value || "")
-      .replace(/"/g, "")
+    String(
+      value || ""
+    )
+
+      .replace(
+        /"/g,
+        ""
+      )
+
       .trim();
+
 
   const match =
     text.match(
       /^(\d{1,2}):(\d{2})(?::(\d{2}))?$/
     );
 
+
   if (!match) {
+
     return "00:00:00";
+
   }
 
-  const hour =
-    String(match[1])
-      .padStart(2, "0");
 
-  const minute =
-    String(match[2])
-      .padStart(2, "0");
+  return (
+    String(
+      match[1]
+    ).padStart(
+      2,
+      "0"
+    )
 
-  const second =
-    String(match[3] || "00")
-      .padStart(2, "0");
+    +
 
-  return `${hour}:${minute}:${second}`;
+    ":"
+
+    +
+
+    String(
+      match[2]
+    ).padStart(
+      2,
+      "0"
+    )
+
+    +
+
+    ":"
+
+    +
+
+    String(
+      match[3] || "00"
+    ).padStart(
+      2,
+      "0"
+    )
+  );
+
 }
+
 
 
 function buildThaiTimestamp(
@@ -244,26 +380,43 @@ function buildThaiTimestamp(
 ) {
 
   let date =
-    String(dateText || "")
-      .replace(/"/g, "")
+    String(
+      dateText || ""
+    )
+
+      .replace(
+        /"/g,
+        ""
+      )
+
       .trim();
+
 
   let time =
-    String(timeText || "")
-      .replace(/"/g, "")
+    String(
+      timeText || ""
+    )
+
+      .replace(
+        /"/g,
+        ""
+      )
+
       .trim();
 
+
   if (!date) {
+
     return null;
+
   }
 
-  // รูปแบบเก่า
-  // 10/8/2026, 14:23:16
 
   const combined =
     date.match(
       /^(\d{1,2}\/\d{1,2}\/\d{4})\s*,\s*(\d{1,2}:\d{2}(?::\d{2})?)$/
     );
+
 
   if (combined) {
 
@@ -275,85 +428,125 @@ function buildThaiTimestamp(
 
   }
 
+
   time =
-    normalizeTimeText(time);
+    normalizeTimeText(
+      time
+    );
 
-
-  // DD/MM/YYYY
 
   let match =
     date.match(
       /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/
     );
 
+
   if (match) {
 
     const day =
-      String(match[1])
-        .padStart(2, "0");
+      String(
+        match[1]
+      ).padStart(
+        2,
+        "0"
+      );
+
 
     const month =
-      String(match[2])
-        .padStart(2, "0");
+      String(
+        match[2]
+      ).padStart(
+        2,
+        "0"
+      );
+
 
     const year =
       match[3];
 
+
     const timestamp =
       `${year}-${month}-${day}T${time}+07:00`;
 
+
     return Number.isNaN(
-      new Date(timestamp).getTime()
+      new Date(
+        timestamp
+      ).getTime()
     )
       ? null
       : timestamp;
+
   }
 
-
-  // YYYY-MM-DD
 
   match =
     date.match(
       /^(\d{4})-(\d{1,2})-(\d{1,2})$/
     );
 
+
   if (match) {
 
     const year =
       match[1];
 
+
     const month =
-      String(match[2])
-        .padStart(2, "0");
+      String(
+        match[2]
+      ).padStart(
+        2,
+        "0"
+      );
+
 
     const day =
-      String(match[3])
-        .padStart(2, "0");
+      String(
+        match[3]
+      ).padStart(
+        2,
+        "0"
+      );
+
 
     const timestamp =
       `${year}-${month}-${day}T${time}+07:00`;
 
+
     return Number.isNaN(
-      new Date(timestamp).getTime()
+      new Date(
+        timestamp
+      ).getTime()
     )
       ? null
       : timestamp;
+
   }
 
+
   return null;
+
 }
 
 
 // ============================================================
-// CSV PARSER
+// CSV
 // ============================================================
 
 function splitCsvLine(line) {
 
-  const cells = [];
+  const cells =
+    [];
 
-  let current = "";
-  let insideQuotes = false;
+
+  let current =
+    "";
+
+
+  let insideQuotes =
+    false;
+
 
   for (
     let i = 0;
@@ -364,7 +557,10 @@ function splitCsvLine(line) {
     const char =
       line[i];
 
-    if (char === '"') {
+
+    if (
+      char === '"'
+    ) {
 
       if (
         insideQuotes &&
@@ -372,6 +568,7 @@ function splitCsvLine(line) {
       ) {
 
         current += '"';
+
         i++;
 
       }
@@ -394,67 +591,113 @@ function splitCsvLine(line) {
         current.trim()
       );
 
-      current = "";
+
+      current =
+        "";
 
     }
 
     else {
 
-      current += char;
+      current +=
+        char;
 
     }
+
   }
+
 
   cells.push(
     current.trim()
   );
 
+
   return cells;
+
 }
+
 
 
 function normalizeHeader(value) {
 
-  return String(value || "")
-    .replace(/"/g, "")
-    .replace(/\u00a0/g, " ")
-    .replace(/\s+/g, " ")
+  return String(
+    value || ""
+  )
+
+    .replace(
+      /"/g,
+      ""
+    )
+
+    .replace(
+      /\u00a0/g,
+      " "
+    )
+
+    .replace(
+      /\s+/g,
+      " "
+    )
+
     .trim()
+
     .toLowerCase();
+
 }
+
 
 
 function parseNumberCell(value) {
 
   let raw =
-    String(value ?? "")
-      .replace(/"/g, "")
-      .replace(/\s+/g, "")
+    String(
+      value ?? ""
+    )
+
+      .replace(
+        /"/g,
+        ""
+      )
+
+      .replace(
+        /\s+/g,
+        ""
+      )
+
       .trim();
+
 
   if (
     raw === "" ||
     raw === "—" ||
     raw === "-"
   ) {
+
     return null;
+
   }
 
+
   raw =
-    raw.replace(",", ".");
+    raw.replace(
+      ",",
+      "."
+    );
+
 
   const number =
     Number(raw);
 
-  return Number.isFinite(number)
+
+  return Number.isFinite(
+    number
+  )
     ? number
     : null;
+
 }
 
 
-// ============================================================
-// PARSE GOOGLE SHEET CSV
-// ============================================================
 
 function parseCsv(csvText) {
 
@@ -462,19 +705,32 @@ function parseCsv(csvText) {
     !csvText ||
     !csvText.trim()
   ) {
+
     return [];
+
   }
+
 
   const rows =
     csvText
-      .split(/\r?\n/)
+
+      .split(
+        /\r?\n/
+      )
+
       .filter(
         line =>
           line.trim() !== ""
       )
-      .map(splitCsvLine);
 
-  let headerRowIndex = -1;
+      .map(
+        splitCsvLine
+      );
+
+
+  let headerRowIndex =
+    -1;
+
 
   for (
     let i = 0;
@@ -484,23 +740,46 @@ function parseCsv(csvText) {
 
     const headers =
       rows[i]
-        .map(normalizeHeader);
+        .map(
+          normalizeHeader
+        );
+
 
     const text =
-      headers.join(" ");
+      headers.join(
+        " "
+      );
+
 
     const hasDate =
-      text.includes("วันที่") ||
-      text.includes("date");
+      text.includes(
+        "วันที่"
+      ) ||
+      text.includes(
+        "date"
+      );
+
 
     const hasLatitude =
-      text.includes("latitude") ||
-      headers.includes("lat");
+      text.includes(
+        "latitude"
+      ) ||
+      headers.includes(
+        "lat"
+      );
+
 
     const hasLongitude =
-      text.includes("longitude") ||
-      headers.includes("lng") ||
-      headers.includes("lon");
+      text.includes(
+        "longitude"
+      ) ||
+      headers.includes(
+        "lng"
+      ) ||
+      headers.includes(
+        "lon"
+      );
+
 
     if (
       hasDate &&
@@ -508,15 +787,19 @@ function parseCsv(csvText) {
       hasLongitude
     ) {
 
-      headerRowIndex = i;
+      headerRowIndex =
+        i;
+
       break;
 
     }
+
   }
 
 
   if (
-    headerRowIndex === -1
+    headerRowIndex ===
+    -1
   ) {
 
     console.error(
@@ -524,109 +807,137 @@ function parseCsv(csvText) {
     );
 
     return [];
+
   }
 
 
   const headers =
     rows[
       headerRowIndex
-    ].map(normalizeHeader);
+    ].map(
+      normalizeHeader
+    );
 
 
   let dateIndex =
     headers.findIndex(
       h =>
-        h.includes("วันที่") ||
-        h === "date"
+        h.includes(
+          "วันที่"
+        ) ||
+        h ===
+          "date"
     );
 
 
   let timeIndex =
     headers.findIndex(
       h =>
-        h.includes("เวลา") ||
-        h === "time"
+        h.includes(
+          "เวลา"
+        ) ||
+        h ===
+          "time"
     );
 
 
   let distanceIndex =
     headers.findIndex(
-      h => {
-
-        const value =
-          String(h || "");
-
-        return (
-          value.includes("ระดับน้ำ") ||
-          value.includes("ระยะน้ำ") ||
-          value.includes("ระยะทาง") ||
-          value.includes("distance") ||
-          value.includes("water level") ||
-          value.includes("water_level") ||
-          value === "level"
-        );
-
-      }
+      h =>
+        h.includes(
+          "ระดับน้ำ"
+        ) ||
+        h.includes(
+          "ระยะน้ำ"
+        ) ||
+        h.includes(
+          "ระยะทาง"
+        ) ||
+        h.includes(
+          "distance"
+        ) ||
+        h.includes(
+          "water level"
+        ) ||
+        h.includes(
+          "water_level"
+        ) ||
+        h ===
+          "level"
     );
 
 
   let latitudeIndex =
     headers.findIndex(
       h =>
-        h.includes("latitude") ||
-        h === "lat"
+        h.includes(
+          "latitude"
+        ) ||
+        h ===
+          "lat"
     );
 
 
   let longitudeIndex =
     headers.findIndex(
       h =>
-        h.includes("longitude") ||
-        h === "lng" ||
-        h === "lon"
+        h.includes(
+          "longitude"
+        ) ||
+        h ===
+          "lng" ||
+        h ===
+          "lon"
     );
 
 
-  // A = วันที่
-  // B = เวลา
-  // C = ระดับน้ำ
-  // D = Latitude
-  // E = Longitude
+  if (
+    dateIndex === -1
+  ) {
 
-  if (dateIndex === -1) {
     dateIndex = 0;
+
   }
 
-  if (timeIndex === -1) {
+
+  if (
+    timeIndex === -1
+  ) {
+
     timeIndex = 1;
+
   }
 
-  if (distanceIndex === -1) {
+
+  if (
+    distanceIndex === -1
+  ) {
+
     distanceIndex = 2;
+
   }
 
-  if (latitudeIndex === -1) {
+
+  if (
+    latitudeIndex === -1
+  ) {
+
     latitudeIndex = 3;
+
   }
 
-  if (longitudeIndex === -1) {
+
+  if (
+    longitudeIndex === -1
+  ) {
+
     longitudeIndex = 4;
+
   }
 
 
-  console.log(
-    "COLUMN INDEX:",
-    {
-      dateIndex,
-      timeIndex,
-      distanceIndex,
-      latitudeIndex,
-      longitudeIndex
-    }
-  );
-
-
-  const results = [];
+  const results =
+    [];
 
 
   for (
@@ -641,55 +952,64 @@ function parseCsv(csvText) {
     const row =
       rows[i];
 
-    if (
-      !row ||
-      row.length === 0
-    ) {
-      continue;
-    }
-
 
     let dateText =
       String(
-        row[dateIndex] || ""
+        row[
+          dateIndex
+        ] || ""
       )
-        .replace(/"/g, "")
+        .replace(
+          /"/g,
+          ""
+        )
         .trim();
 
 
     let timeText =
       String(
-        row[timeIndex] || ""
+        row[
+          timeIndex
+        ] || ""
       )
-        .replace(/"/g, "")
+        .replace(
+          /"/g,
+          ""
+        )
         .trim();
 
 
     let distanceRaw =
-      row[distanceIndex];
+      row[
+        distanceIndex
+      ];
+
 
     let latitudeRaw =
-      row[latitudeIndex];
+      row[
+        latitudeIndex
+      ];
+
 
     let longitudeRaw =
-      row[longitudeIndex];
+      row[
+        longitudeIndex
+      ];
 
 
-    // รองรับข้อมูลเก่า
-
-    const oldDateTime =
+    const old =
       dateText.match(
         /^(\d{1,2}\/\d{1,2}\/\d{4})\s*,\s*(\d{1,2}:\d{2}(?::\d{2})?)$/
       );
 
 
-    if (oldDateTime) {
+    if (old) {
 
       dateText =
-        oldDateTime[1];
+        old[1];
 
       timeText =
-        oldDateTime[2];
+        old[2];
 
       distanceRaw =
         row[1];
@@ -711,7 +1031,9 @@ function parseCsv(csvText) {
 
 
     if (!timestamp) {
+
       continue;
+
     }
 
 
@@ -735,22 +1057,29 @@ function parseCsv(csvText) {
         )
 
     });
+
   }
 
 
   results.sort(
     (a, b) =>
-      new Date(a.timestamp) -
-      new Date(b.timestamp)
+      new Date(
+        a.timestamp
+      )
+      -
+      new Date(
+        b.timestamp
+      )
   );
 
 
   return results;
+
 }
 
 
 // ============================================================
-// LOAD GOOGLE SHEET
+// LOAD
 // ============================================================
 
 async function loadStation(station) {
@@ -759,26 +1088,35 @@ async function loadStation(station) {
     !station.deployed ||
     !station.googleSheetCsv
   ) {
+
     return [];
+
   }
+
 
   try {
 
     const separator =
-      station.googleSheetCsv.includes("?")
+      station.googleSheetCsv.includes(
+        "?"
+      )
         ? "&"
         : "?";
 
 
     const url =
-      `${station.googleSheetCsv}${separator}_=${Date.now()}`;
+      station.googleSheetCsv +
+      separator +
+      "_=" +
+      Date.now();
 
 
     const response =
       await fetch(
         url,
         {
-          cache: "no-store"
+          cache:
+            "no-store"
         }
       );
 
@@ -792,12 +1130,12 @@ async function loadStation(station) {
     }
 
 
-    const csvText =
+    const text =
       await response.text();
 
 
     return parseCsv(
-      csvText
+      text
     );
 
   }
@@ -809,14 +1147,16 @@ async function loadStation(station) {
       error
     );
 
+
     return [];
 
   }
+
 }
 
 
 // ============================================================
-// DATA HELPERS
+// DATA
 // ============================================================
 
 function latestReading(station) {
@@ -826,12 +1166,15 @@ function latestReading(station) {
       station.id
     ] || [];
 
+
   return readings.length
     ? readings[
         readings.length - 1
       ]
     : null;
+
 }
+
 
 
 function latestLevelReading(station) {
@@ -840,6 +1183,7 @@ function latestLevelReading(station) {
     state.data[
       station.id
     ] || [];
+
 
   for (
     let i =
@@ -859,40 +1203,58 @@ function latestLevelReading(station) {
       return readings[i];
 
     }
+
   }
 
+
   return null;
+
 }
+
 
 
 function getRange(station) {
 
-  const levels =
+  const values =
     (
       state.data[
         station.id
       ] || []
     )
+
       .map(
         reading =>
           reading.level
       )
+
       .filter(
         Number.isFinite
       );
 
-  if (!levels.length) {
+
+  if (!values.length) {
+
     return null;
+
   }
 
+
   return {
+
     min:
-      Math.min(...levels),
+      Math.min(
+        ...values
+      ),
 
     max:
-      Math.max(...levels)
+      Math.max(
+        ...values
+      )
+
   };
+
 }
+
 
 
 function getStatus(station) {
@@ -900,11 +1262,17 @@ function getStatus(station) {
   if (!station.deployed) {
 
     return {
-      className: "pending",
-      text: "รอติดตั้ง"
+
+      className:
+        "pending",
+
+      text:
+        "รอติดตั้ง"
+
     };
 
   }
+
 
   const reading =
     latestLevelReading(
@@ -915,8 +1283,13 @@ function getStatus(station) {
   if (!reading) {
 
     return {
-      className: "offline",
-      text: "ไม่มีข้อมูล"
+
+      className:
+        "offline",
+
+      text:
+        "ไม่มีข้อมูล"
+
     };
 
   }
@@ -931,17 +1304,28 @@ function getStatus(station) {
   ) {
 
     return {
-      className: "warning",
-      text: "เฝ้าระวัง"
+
+      className:
+        "warning",
+
+      text:
+        "เฝ้าระวัง"
+
     };
 
   }
 
 
   return {
-    className: "normal",
-    text: "ปกติ"
+
+    className:
+      "normal",
+
+    text:
+      "ปกติ"
+
   };
+
 }
 
 
@@ -954,150 +1338,184 @@ function renderCards() {
   const container =
     $("#stationCards");
 
+
   if (!container) {
+
     return;
+
   }
 
 
   container.innerHTML =
-    stations
-      .map(
-        (station, index) => {
+    stations.map(
+      (station, index) => {
 
-          const reading =
-            latestLevelReading(
-              station
-            );
-
-          const range =
-            getRange(
-              station
-            );
-
-          const status =
-            getStatus(
-              station
-            );
+        const reading =
+          latestLevelReading(
+            station
+          );
 
 
-          const value =
-            reading &&
-            Number.isFinite(
-              reading.level
-            )
-              ? reading.level.toFixed(3)
-              : "—";
+        const range =
+          getRange(
+            station
+          );
 
 
-          return `
+        const status =
+          getStatus(
+            station
+          );
 
-            <button
-              class="
-                station-card
-                ${
-                  station.id ===
-                  state.selectedStationId
-                    ? "selected"
-                    : ""
-                }
-              "
-              data-station-id="${station.id}"
-              style="
-                --station-color:${station.color};
-                --station-soft:${station.softColor};
-              "
-            >
 
-              <div class="station-card-top">
+        return `
 
-                <div
-                  class="
-                    station-status
-                    ${status.className}
-                  "
-                >
-                  <span></span>
-                  ${status.text}
-                </div>
+          <button
 
-                <div class="station-number">
-                  ${index + 1}
-                </div>
+            class="
+              station-card
+              ${
+                station.id ===
+                state.selectedStationId
+                  ? "selected"
+                  : ""
+              }
+            "
+
+            data-station-id="${station.id}"
+
+            style="
+              --station-color:${station.color};
+              --station-soft:${station.softColor};
+            "
+          >
+
+
+            <div class="station-card-top">
+
+
+              <div
+                class="
+                  station-status
+                  ${status.className}
+                "
+              >
+
+                <span></span>
+
+                ${status.text}
 
               </div>
 
 
-              <div class="station-name">
-                ${station.name}
-              </div>
+              <div class="station-number">
 
-
-              <div class="station-main-value">
-
-                ${value}
-
-                <small>
-                  ${station.unit}
-                </small>
+                ${index + 1}
 
               </div>
 
 
-              <div class="station-label">
-                ระดับน้ำล่าสุด
+            </div>
+
+
+
+            <div class="station-name">
+
+              ${station.name}
+
+            </div>
+
+
+
+            <div class="station-main-value">
+
+              ${
+                reading
+                  ? reading.level.toFixed(3)
+                  : "—"
+              }
+
+              <small>
+                ${station.unit}
+              </small>
+
+            </div>
+
+
+
+            <div class="station-label">
+
+              ระดับน้ำล่าสุด
+
+            </div>
+
+
+
+            <div class="station-stat-row">
+
+
+              <div>
+
+                <span>
+                  ต่ำสุดทั้งหมด
+                </span>
+
+                <strong>
+
+                  ${
+                    range
+                      ? range.min.toFixed(3)
+                      : "—"
+                  }
+
+                </strong>
+
               </div>
 
 
-              <div class="station-stat-row">
+              <div>
 
-                <div>
-                  <span>ต่ำสุดทั้งหมด</span>
+                <span>
+                  สูงสุดทั้งหมด
+                </span>
 
-                  <strong>
-                    ${
-                      range
-                        ? range.min.toFixed(3)
-                        : "—"
-                    }
-                  </strong>
-                </div>
+                <strong>
 
+                  ${
+                    range
+                      ? range.max.toFixed(3)
+                      : "—"
+                  }
 
-                <div>
-                  <span>สูงสุดทั้งหมด</span>
-
-                  <strong>
-                    ${
-                      range
-                        ? range.max.toFixed(3)
-                        : "—"
-                    }
-                  </strong>
-                </div>
+                </strong>
 
               </div>
 
 
-              <div class="station-update">
+            </div>
 
-                ${
-                  reading
-                    ? "อัปเดต " +
-                      formatDate(
-                        reading.timestamp
-                      )
-                    : "ยังไม่มีข้อมูล"
-                }
 
-              </div>
 
-            </button>
+            <div class="station-update">
 
-          `;
+              ${
+                reading
+                  ? "อัปเดต " +
+                    formatDate(
+                      reading.timestamp
+                    )
+                  : "ยังไม่มีข้อมูล"
+              }
 
-        }
-      )
-      .join("");
+            </div>
+
+
+          </button>
+
+        `;
+
+      }
+    ).join("");
 
 
   document
@@ -1114,24 +1532,30 @@ function renderCards() {
             state.selectedStationId =
               button.dataset.stationId;
 
+
             state.chartMode =
               "station";
+
 
             state.selectedDate =
               "";
 
-            renderEverything(true);
+
+            renderEverything(
+              true
+            );
 
           }
         );
 
       }
     );
+
 }
 
 
 // ============================================================
-// STATION SELECT
+// SELECT
 // ============================================================
 
 function renderStationSelect() {
@@ -1139,34 +1563,39 @@ function renderStationSelect() {
   const select =
     $("#stationSelect");
 
+
   if (!select) {
+
     return;
+
   }
 
+
   select.innerHTML =
-    stations
-      .map(
-        station =>
-          `
-            <option value="${station.id}">
-              ${station.name}
-            </option>
-          `
-      )
-      .join("");
+    stations.map(
+      station =>
+        `
+          <option value="${station.id}">
+            ${station.name}
+          </option>
+        `
+    ).join("");
+
 
   select.value =
     state.selectedStationId;
+
 }
 
 
 // ============================================================
-// DATES
+// DATE
 // ============================================================
 
 function getAvailableDates() {
 
-  let readings = [];
+  let readings =
+    [];
 
 
   if (
@@ -1200,18 +1629,26 @@ function getAvailableDates() {
 
 
   return [
+
     ...new Set(
+
       readings
+
         .map(
           reading =>
             dateKey(
               reading.timestamp
             )
         )
+
         .filter(Boolean)
+
     )
+
   ].sort();
+
 }
+
 
 
 function renderDateInput() {
@@ -1219,8 +1656,11 @@ function renderDateInput() {
   const input =
     $("#dateInput");
 
+
   if (!input) {
+
     return;
+
   }
 
 
@@ -1230,13 +1670,14 @@ function renderDateInput() {
 
   if (!dates.length) {
 
-    state.selectedDate = "";
+    state.selectedDate =
+      "";
 
-    input.value = "";
-    input.min = "";
-    input.max = "";
+    input.value =
+      "";
 
     return;
+
   }
 
 
@@ -1258,56 +1699,19 @@ function renderDateInput() {
   input.min =
     dates[0];
 
+
   input.max =
     dates[
       dates.length - 1
     ];
 
+
   input.value =
     state.selectedDate;
+
 }
 
 
-function changeDate(direction) {
-
-  const dates =
-    getAvailableDates();
-
-  if (!dates.length) {
-    return;
-  }
-
-  const index =
-    dates.indexOf(
-      state.selectedDate
-    );
-
-  if (index === -1) {
-    return;
-  }
-
-  const nextIndex =
-    Math.max(
-      0,
-      Math.min(
-        dates.length - 1,
-        index + direction
-      )
-    );
-
-  state.selectedDate =
-    dates[nextIndex];
-
-  renderDateInput();
-  renderSummary();
-  renderChart();
-  updateDownloadMenuInfo();
-}
-
-
-// ============================================================
-// DATE FILTER
-// ============================================================
 
 function getReadingsForDate(
   stationId,
@@ -1319,20 +1723,26 @@ function getReadingsForDate(
       stationId
     ] || []
   )
+
     .filter(
       reading =>
         dateKey(
           reading.timestamp
-        ) === selectedDate &&
+        ) ===
+          selectedDate
+
+        &&
+
         Number.isFinite(
           reading.level
         )
     );
+
 }
 
 
 // ============================================================
-// HOURLY AVERAGE
+// HOURLY
 // ============================================================
 
 function aggregateHourly(readings) {
@@ -1340,38 +1750,38 @@ function aggregateHourly(readings) {
   const buckets =
     Array.from(
       {
-        length: 24
+        length:
+          24
       },
-      (_, hour) => ({
-        hour,
-        values: []
-      })
+      () =>
+        []
     );
 
 
   readings.forEach(
     reading => {
 
-      if (
-        !Number.isFinite(
-          reading.level
-        )
-      ) {
-        return;
-      }
-
       const hour =
         getThaiHour(
           reading.timestamp
         );
 
-      if (hour === null) {
+
+      if (
+        hour === null ||
+        !Number.isFinite(
+          reading.level
+        )
+      ) {
+
         return;
+
       }
+
 
       buckets[
         hour
-      ].values.push(
+      ].push(
         reading.level
       );
 
@@ -1380,76 +1790,88 @@ function aggregateHourly(readings) {
 
 
   return buckets.map(
-    bucket => {
+    (
+      values,
+      hour
+    ) => {
 
-      if (!bucket.values.length) {
+      if (!values.length) {
 
         return {
-          hour: bucket.hour,
-          average: null,
-          min: null,
-          max: null,
-          count: 0
+
+          hour,
+
+          average:
+            null,
+
+          min:
+            null,
+
+          max:
+            null,
+
+          count:
+            0
+
         };
 
       }
 
 
-      const sum =
-        bucket.values.reduce(
-          (total, value) =>
-            total + value,
+      const total =
+        values.reduce(
+          (sum, value) =>
+            sum + value,
           0
         );
 
 
       return {
 
-        hour:
-          bucket.hour,
+        hour,
 
         average:
-          sum /
-          bucket.values.length,
+          total /
+          values.length,
 
         min:
           Math.min(
-            ...bucket.values
+            ...values
           ),
 
         max:
           Math.max(
-            ...bucket.values
+            ...values
           ),
 
         count:
-          bucket.values.length
+          values.length
 
       };
 
     }
   );
+
 }
 
 
-// ============================================================
-// DAILY STATS
-// ============================================================
 
 function getDailyStats(
   stationId,
-  selectedDate
+  date
 ) {
 
   const readings =
     getReadingsForDate(
       stationId,
-      selectedDate
+      date
     );
 
 
   if (!readings.length) {
+
     return null;
+
   }
 
 
@@ -1474,6 +1896,14 @@ function getDailyStats(
     latestTime:
       latest.timestamp,
 
+    average:
+      values.reduce(
+        (sum, value) =>
+          sum + value,
+        0
+      ) /
+      values.length,
+
     min:
       Math.min(
         ...values
@@ -1484,18 +1914,11 @@ function getDailyStats(
         ...values
       ),
 
-    average:
-      values.reduce(
-        (sum, value) =>
-          sum + value,
-        0
-      ) /
-      values.length,
-
     count:
       values.length
 
   };
+
 }
 
 
@@ -1508,20 +1931,23 @@ function renderSummary() {
   const container =
     $("#chartSummary");
 
-  if (!container) {
+
+  if (
+    !container ||
+    !state.selectedDate
+  ) {
+
+    if (container) {
+
+      container.innerHTML =
+        "";
+
+    }
+
     return;
+
   }
 
-
-  if (!state.selectedDate) {
-
-    container.innerHTML = "";
-    return;
-
-  }
-
-
-  // ALL STATIONS
 
   if (
     state.chartMode ===
@@ -1529,74 +1955,74 @@ function renderSummary() {
   ) {
 
     container.innerHTML =
-      stations
-        .map(
-          station => {
+      stations.map(
+        station => {
 
-            const stats =
-              getDailyStats(
-                station.id,
-                state.selectedDate
-              );
+          const stats =
+            getDailyStats(
+              station.id,
+              state.selectedDate
+            );
 
 
-            return `
+          return `
 
-              <div
-                class="summary-card summary-station"
-                style="
-                  --summary-color:${station.color};
-                "
-              >
+            <div
+              class="summary-card"
+              style="
+                --summary-color:${station.color};
+              "
+            >
 
-                <div class="summary-color-line">
-                </div>
+              <div class="summary-color-line">
+              </div>
 
-                <div>
+              <div>
 
-                  <span class="summary-title">
-                    ${station.shortName}
-                  </span>
+                <span class="summary-title">
 
-                  <strong class="summary-big">
+                  ${station.shortName}
 
-                    ${
-                      stats
-                        ? stats.latest.toFixed(3)
-                        : "—"
-                    }
+                </span>
 
-                    <small>
-                      ${station.unit}
-                    </small>
+                <strong class="summary-big">
 
-                  </strong>
+                  ${
+                    stats
+                      ? stats.latest.toFixed(3)
+                      : "—"
+                  }
 
-                  <span class="summary-description">
+                  <small>
+                    ${station.unit}
+                  </small>
 
-                    ${
-                      stats
-                        ? `เฉลี่ย ${stats.average.toFixed(3)} เมตร · ${stats.count} จุด`
-                        : "ไม่มีข้อมูลในวันที่เลือก"
-                    }
+                </strong>
 
-                  </span>
+                <span class="summary-description">
 
-                </div>
+                  ${
+                    stats
+                      ? `เฉลี่ย ${stats.average.toFixed(3)} เมตร`
+                      : "ไม่มีข้อมูล"
+                  }
+
+                </span>
 
               </div>
 
-            `;
+            </div>
 
-          }
-        )
-        .join("");
+          `;
+
+        }
+      ).join("");
+
 
     return;
+
   }
 
-
-  // SINGLE STATION
 
   const station =
     stations.find(
@@ -1604,11 +2030,6 @@ function renderSummary() {
         station.id ===
         state.selectedStationId
     );
-
-
-  if (!station) {
-    return;
-  }
 
 
   const stats =
@@ -1623,101 +2044,99 @@ function renderSummary() {
     container.innerHTML =
       `
         <div class="summary-empty">
-          ยังไม่มีข้อมูลสำหรับวันที่เลือก
+          ไม่มีข้อมูลสำหรับวันที่เลือก
         </div>
       `;
 
     return;
+
   }
 
 
   const cards = [
 
     {
-      icon: "◉",
-      title: "ค่าล่าสุด",
-      value: stats.latest,
-      description:
-        formatDate(
-          stats.latestTime,
-          {
-            hour: "2-digit",
-            minute: "2-digit"
-          }
-        )
+      icon:
+        "◉",
+      title:
+        "ค่าล่าสุด",
+      value:
+        stats.latest
     },
 
     {
-      icon: "≈",
-      title: "ค่าเฉลี่ย",
-      value: stats.average,
-      description:
-        `${stats.count} จุดวัด`
+      icon:
+        "≈",
+      title:
+        "ค่าเฉลี่ย",
+      value:
+        stats.average
     },
 
     {
-      icon: "↓",
-      title: "ต่ำสุด",
-      value: stats.min,
-      description:
-        "ของวันที่เลือก"
+      icon:
+        "↓",
+      title:
+        "ต่ำสุด",
+      value:
+        stats.min
     },
 
     {
-      icon: "↑",
-      title: "สูงสุด",
-      value: stats.max,
-      description:
-        "ของวันที่เลือก"
+      icon:
+        "↑",
+      title:
+        "สูงสุด",
+      value:
+        stats.max
     }
 
   ];
 
 
   container.innerHTML =
-    cards
-      .map(
-        card =>
-          `
+    cards.map(
+      card =>
+        `
 
-            <div class="summary-card">
+          <div class="summary-card">
 
-              <div class="summary-icon">
-                ${card.icon}
-              </div>
+            <div class="summary-icon">
 
-              <div>
-
-                <span class="summary-title">
-                  ${card.title}
-                </span>
-
-                <strong class="summary-big">
-
-                  ${card.value.toFixed(3)}
-
-                  <small>
-                    ${station.unit}
-                  </small>
-
-                </strong>
-
-                <span class="summary-description">
-                  ${card.description}
-                </span>
-
-              </div>
+              ${card.icon}
 
             </div>
 
-          `
-      )
-      .join("");
+            <div>
+
+              <span class="summary-title">
+
+                ${card.title}
+
+              </span>
+
+              <strong class="summary-big">
+
+                ${card.value.toFixed(3)}
+
+                <small>
+                  ${station.unit}
+                </small>
+
+              </strong>
+
+            </div>
+
+          </div>
+
+        `
+    ).join("");
+
 }
 
 
 // ============================================================
-// MODE BUTTONS
+// MODES
 // ============================================================
 
 function renderModeButtons() {
@@ -1736,6 +2155,7 @@ function renderModeButtons() {
       state.chartMode ===
         "all"
     );
+
 }
 
 
@@ -1743,65 +2163,66 @@ function renderModeButtons() {
 // CHART
 // ============================================================
 
-function makeHourlyLabels() {
-
-  return Array.from(
-    {
-      length: 24
-    },
-    (_, hour) =>
-      `${String(hour).padStart(2, "0")}:00`
-  );
-}
-
-
 function renderChart() {
 
   const canvas =
     $("#waterChart");
 
+
   if (!canvas) {
+
     return;
+
   }
 
 
-  if (state.chart) {
+  if (
+    state.chart
+  ) {
 
     state.chart.destroy();
-    state.chart = null;
+
+    state.chart =
+      null;
 
   }
 
 
   const labels =
-    makeHourlyLabels();
+    Array.from(
+      {
+        length:
+          24
+      },
+
+      (_, hour) =>
+        `${String(hour).padStart(2,"0")}:00`
+    );
 
 
   const dark =
     document.documentElement
       .getAttribute(
         "data-theme"
-      ) === "dark";
+      ) ===
+      "dark";
 
 
-  const chartText =
+  const textColor =
     dark
-      ? "#9fb5be"
-      : "#8197a1";
+      ? "#9fb4bd"
+      : "#8397a1";
 
 
-  const chartGrid =
+  const gridColor =
     dark
       ? "rgba(160,190,200,.09)"
       : "rgba(120,150,160,.12)";
 
 
-  let datasets = [];
+  let datasets =
+    [];
 
-
-  // ==========================================================
-  // ALL 3 STATIONS
-  // ==========================================================
 
   if (
     state.chartMode ===
@@ -1815,16 +2236,12 @@ function renderChart() {
     stations.forEach(
       station => {
 
-        const readings =
-          getReadingsForDate(
-            station.id,
-            state.selectedDate
-          );
-
-
         const hourly =
           aggregateHourly(
-            readings
+            getReadingsForDate(
+              station.id,
+              state.selectedDate
+            )
           );
 
 
@@ -1848,9 +2265,6 @@ function renderChart() {
           borderWidth:
             3,
 
-          tension:
-            0.38,
-
           pointRadius:
             4,
 
@@ -1868,6 +2282,9 @@ function renderChart() {
           pointBorderWidth:
             2,
 
+          tension:
+            0.38,
+
           spanGaps:
             false
 
@@ -1878,14 +2295,9 @@ function renderChart() {
 
 
     $("#chartNotice").textContent =
-      "แต่ละจุดแสดงค่าเฉลี่ยของข้อมูลภายในชั่วโมงนั้น สามารถเปรียบเทียบทั้ง 3 สถานีได้ในกราฟเดียว";
+      "เปรียบเทียบค่าเฉลี่ยรายชั่วโมงของทั้ง 3 สถานี";
 
   }
-
-
-  // ==========================================================
-  // SINGLE STATION
-  // ==========================================================
 
   else {
 
@@ -1898,7 +2310,9 @@ function renderChart() {
 
 
     if (!station) {
+
       return;
+
     }
 
 
@@ -1919,16 +2333,18 @@ function renderChart() {
       `ระดับน้ำ · ${station.shortName}`;
 
 
-    const context =
-      canvas.getContext("2d");
+    const ctx =
+      canvas.getContext(
+        "2d"
+      );
 
 
     const gradient =
-      context.createLinearGradient(
+      ctx.createLinearGradient(
         0,
         0,
         0,
-        500
+        490
       );
 
 
@@ -1938,7 +2354,7 @@ function renderChart() {
         station.color,
         dark
           ? 0.18
-          : 0.27
+          : 0.26
       )
     );
 
@@ -1957,7 +2373,7 @@ function renderChart() {
       {
 
         label:
-          `${station.shortName} · เฉลี่ยรายชั่วโมง`,
+          station.shortName,
 
         data:
           hourly.map(
@@ -1977,9 +2393,6 @@ function renderChart() {
         borderWidth:
           3,
 
-        tension:
-          0.4,
-
         pointRadius:
           4,
 
@@ -1996,6 +2409,9 @@ function renderChart() {
 
         pointBorderWidth:
           3,
+
+        tension:
+          0.4,
 
         spanGaps:
           false
@@ -2017,19 +2433,13 @@ function renderChart() {
         borderColor:
           "#f08a45",
 
-        backgroundColor:
-          "#f08a45",
+        borderDash:
+          [7,7],
 
         borderWidth:
           2,
 
-        borderDash:
-          [7, 7],
-
         pointRadius:
-          0,
-
-        tension:
           0
 
       }
@@ -2039,26 +2449,23 @@ function renderChart() {
 
     $("#chartNotice").textContent =
       readings.length
-        ? `ข้อมูล ${readings.length} จุดวัด ถูกคำนวณเป็นค่าเฉลี่ยรายชั่วโมง · เส้นประสีส้มคือระดับเฝ้าระวัง`
-        : "ยังไม่มีข้อมูลระดับน้ำสำหรับวันที่เลือก";
+        ? `ข้อมูล ${readings.length} จุดวัด ถูกคำนวณเป็นค่าเฉลี่ยรายชั่วโมง`
+        : "ไม่มีข้อมูลสำหรับวันที่เลือก";
 
   }
 
-
-  // DATE LABEL
 
   $("#chartDateLabel").textContent =
     state.selectedDate
       ? formatDate(
           `${state.selectedDate}T12:00:00+07:00`,
           {
-            dateStyle: "full"
+            dateStyle:
+              "full"
           }
         )
-      : "ยังไม่มีข้อมูล";
+      : "ไม่มีข้อมูล";
 
-
-  // CHART
 
   state.chart =
     new Chart(
@@ -2068,243 +2475,220 @@ function renderChart() {
         type:
           "line",
 
-        data: {
-          labels,
-          datasets
-        },
-
-        options: {
-
-          responsive:
-            true,
-
-          maintainAspectRatio:
-            false,
-
-          interaction: {
-            mode: "index",
-            intersect: false
+        data:
+          {
+            labels,
+            datasets
           },
 
-          animation: {
-            duration: 450,
-            easing: "easeOutQuart"
-          },
+        options:
+          {
 
-          plugins: {
+            responsive:
+              true,
 
-            legend: {
+            maintainAspectRatio:
+              false,
 
-              position: "top",
-              align: "start",
-
-              labels: {
-
-                color:
-                  chartText,
-
-                usePointStyle:
-                  true,
-
-                pointStyle:
-                  "circle",
-
-                boxWidth:
-                  8,
-
-                boxHeight:
-                  8,
-
-                padding:
-                  20,
-
-                font: {
-                  family:
-                    "'Noto Sans Thai', sans-serif",
-                  size: 11,
-                  weight: "600"
-                }
-
-              }
-
-            },
-
-
-            tooltip: {
-
-              backgroundColor:
-                "rgba(8,30,42,.96)",
-
-              titleColor:
-                "#ffffff",
-
-              bodyColor:
-                "#e4eef2",
-
-              borderColor:
-                "rgba(255,255,255,.08)",
-
-              borderWidth:
-                1,
-
-              padding:
-                14,
-
-              cornerRadius:
-                12,
-
-              displayColors:
-                true,
-
-              callbacks: {
-
-                title:
-                  items =>
-                    items.length
-                      ? `เวลา ${items[0].label} น.`
-                      : "",
-
-
-                label:
-                  context => {
-
-                    if (
-                      context.raw === null ||
-                      context.raw === undefined
-                    ) {
-
-                      return (
-                        `${context.dataset.label}: ไม่มีข้อมูล`
-                      );
-
-                    }
-
-
-                    return (
-                      `${context.dataset.label}: ` +
-                      `${Number(context.raw).toFixed(3)} เมตร`
-                    );
-
-                  }
-
-              }
-
-            }
-
-          },
-
-
-          scales: {
-
-            y: {
-
-              beginAtZero:
-                true,
-
-              border: {
-                display: false
+            interaction:
+              {
+                mode:
+                  "index",
+                intersect:
+                  false
               },
 
-              grid: {
-                color: chartGrid
-              },
+            plugins:
+              {
 
-              ticks: {
+                legend:
+                  {
 
-                color:
-                  chartText,
+                    position:
+                      "top",
 
-                padding:
-                  10,
+                    align:
+                      "start",
 
-                callback:
-                  value =>
-                    Number(value).toFixed(1)
+                    labels:
+                      {
 
-              },
+                        color:
+                          textColor,
 
-              title: {
+                        usePointStyle:
+                          true,
 
-                display:
-                  true,
+                        pointStyle:
+                          "circle",
 
-                text:
-                  "ระดับน้ำ (เมตร)",
+                        boxWidth:
+                          8,
 
-                color:
-                  chartText
+                        padding:
+                          20
 
-              }
+                      }
 
-            },
+                  },
 
 
-            x: {
+                tooltip:
+                  {
 
-              border: {
-                display: false
-              },
+                    backgroundColor:
+                      "rgba(8,30,42,.96)",
 
-              grid: {
-                display: false
-              },
+                    padding:
+                      13,
 
-              ticks: {
+                    cornerRadius:
+                      12,
 
-                color:
-                  chartText,
+                    callbacks:
+                      {
 
-                autoSkip:
-                  false,
+                        title:
+                          items =>
+                            items.length
+                              ? `เวลา ${items[0].label} น.`
+                              : "",
 
-                maxRotation:
-                  0,
+                        label:
+                          context => {
 
-                padding:
-                  10,
+                            if (
+                              context.raw === null
+                            ) {
 
-                callback:
-                  function (
-                    value,
-                    index
-                  ) {
+                              return (
+                                context.dataset.label +
+                                ": ไม่มีข้อมูล"
+                              );
 
-                    return (
-                      index % 2 === 0
-                        ? labels[index]
-                        : ""
-                    );
+                            }
+
+
+                            return (
+                              context.dataset.label +
+                              ": " +
+                              Number(
+                                context.raw
+                              ).toFixed(
+                                3
+                              ) +
+                              " เมตร"
+                            );
+
+                          }
+
+                      }
 
                   }
 
               },
 
-              title: {
+            scales:
+              {
 
-                display:
-                  true,
+                y:
+                  {
 
-                text:
-                  "เวลา (รายชั่วโมง)",
+                    beginAtZero:
+                      true,
 
-                color:
-                  chartText
+                    border:
+                      {
+                        display:
+                          false
+                      },
+
+                    grid:
+                      {
+                        color:
+                          gridColor
+                      },
+
+                    ticks:
+                      {
+                        color:
+                          textColor
+                      },
+
+                    title:
+                      {
+
+                        display:
+                          true,
+
+                        text:
+                          "ระดับน้ำ (เมตร)",
+
+                        color:
+                          textColor
+
+                      }
+
+                  },
+
+
+                x:
+                  {
+
+                    border:
+                      {
+                        display:
+                          false
+                      },
+
+                    grid:
+                      {
+                        display:
+                          false
+                      },
+
+                    ticks:
+                      {
+
+                        color:
+                          textColor,
+
+                        autoSkip:
+                          false,
+
+                        maxRotation:
+                          0,
+
+                        callback:
+                          function (
+                            value,
+                            index
+                          ) {
+
+                            return (
+                              index % 2 === 0
+                                ? labels[index]
+                                : ""
+                            );
+
+                          }
+
+                      }
+
+                  }
 
               }
-
-            }
 
           }
 
-        }
-
       }
     );
+
 }
 
 
 // ============================================================
-// MAP MARKER
+// MAP
 // ============================================================
 
 function createMarkerIcon(
@@ -2331,7 +2715,7 @@ function createMarkerIcon(
           "
           style="
             --marker-color:${station.color};
-            --marker-soft:${hexToRgba(station.color, 0.22)};
+            --marker-soft:${hexToRgba(station.color,.22)};
           "
         >
 
@@ -2350,21 +2734,19 @@ function createMarkerIcon(
       `,
 
     iconSize:
-      [54, 54],
+      [54,54],
 
     iconAnchor:
-      [27, 27],
+      [27,27],
 
     popupAnchor:
-      [0, -25]
+      [0,-25]
 
   });
+
 }
 
 
-// ============================================================
-// COORDINATES
-// ============================================================
 
 function getStationCoordinates(station) {
 
@@ -2388,6 +2770,7 @@ function getStationCoordinates(station) {
         readings[i].latitude
       );
 
+
     const lng =
       Number(
         readings[i].longitude
@@ -2395,8 +2778,12 @@ function getStationCoordinates(station) {
 
 
     if (
-      Number.isFinite(lat) &&
-      Number.isFinite(lng) &&
+      Number.isFinite(
+        lat
+      ) &&
+      Number.isFinite(
+        lng
+      ) &&
       lat !== 0 &&
       lng !== 0
     ) {
@@ -2412,20 +2799,29 @@ function getStationCoordinates(station) {
 
 
   return [
-    Number(station.latitude),
-    Number(station.longitude)
+
+    Number(
+      station.latitude
+    ),
+
+    Number(
+      station.longitude
+    )
+
   ];
+
 }
 
 
-// ============================================================
-// MAP
-// ============================================================
 
 function setupMap() {
 
-  if (state.map) {
+  if (
+    state.map
+  ) {
+
     return;
+
   }
 
 
@@ -2445,36 +2841,39 @@ function setupMap() {
 
   state.map =
     L.map(
-      "map",
-      {
-        center: coords,
-        zoom: 16,
-        zoomControl: true
-      }
+      "map"
+    ).setView(
+      coords,
+      16
     );
 
-
-  // Satellite
 
   const satellite =
     L.tileLayer(
       "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
       {
-        maxZoom: 19,
-        attribution: "Tiles © Esri"
+
+        maxZoom:
+          19,
+
+        attribution:
+          "Tiles © Esri"
+
       }
     );
 
-
-  // Street
 
   const street =
     L.tileLayer(
       "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
       {
-        maxZoom: 19,
+
+        maxZoom:
+          19,
+
         attribution:
-          "© OpenStreetMap contributors"
+          "© OpenStreetMap"
+
       }
     );
 
@@ -2486,16 +2885,13 @@ function setupMap() {
 
   L.control.layers(
     {
+
       "ดาวเทียม":
         satellite,
 
       "แผนที่":
         street
-    },
-    null,
-    {
-      collapsed: true,
-      position: "topright"
+
     }
   ).addTo(
     state.map
@@ -2503,32 +2899,32 @@ function setupMap() {
 
 
   renderMapMarkers();
+
 }
 
 
-// ============================================================
-// MAP MARKERS
-// ============================================================
 
 function renderMapMarkers() {
 
-  if (!state.map) {
+  if (
+    !state.map
+  ) {
+
     return;
+
   }
 
 
   state.markers.forEach(
-    marker => {
-
+    marker =>
       state.map.removeLayer(
         marker
-      );
-
-    }
+      )
   );
 
 
-  state.markers = [];
+  state.markers =
+    [];
 
 
   stations.forEach(
@@ -2541,17 +2937,28 @@ function renderMapMarkers() {
 
 
       const lat =
-        Number(coords[0]);
+        Number(
+          coords[0]
+        );
+
 
       const lng =
-        Number(coords[1]);
+        Number(
+          coords[1]
+        );
 
 
       if (
-        !Number.isFinite(lat) ||
-        !Number.isFinite(lng)
+        !Number.isFinite(
+          lat
+        ) ||
+        !Number.isFinite(
+          lng
+        )
       ) {
+
         return;
+
       }
 
 
@@ -2569,14 +2976,19 @@ function renderMapMarkers() {
 
       const marker =
         L.marker(
-          [lat, lng],
+          [
+            lat,
+            lng
+          ],
           {
+
             icon:
               createMarkerIcon(
                 station,
                 station.id ===
                   state.selectedStationId
               )
+
           }
         );
 
@@ -2678,7 +3090,7 @@ function renderMapMarkers() {
                     formatDate(
                       reading.timestamp
                     )
-                  : "ยังไม่มีข้อมูลล่าสุด"
+                  : "ไม่มีข้อมูลล่าสุด"
               }
 
             </div>
@@ -2689,37 +3101,13 @@ function renderMapMarkers() {
       );
 
 
-      marker.on(
-        "click",
-        () => {
-
-          state.selectedStationId =
-            station.id;
-
-          state.chartMode =
-            "station";
-
-          state.selectedDate =
-            "";
-
-          renderCards();
-          renderStationSelect();
-          renderModeButtons();
-          renderDateInput();
-          renderSummary();
-          renderChart();
-          updateDownloadMenuInfo();
-
-        }
-      );
-
-
       state.markers.push(
         marker
       );
 
     }
   );
+
 }
 
 
@@ -2736,8 +3124,10 @@ function getPreferredTheme() {
 
 
   if (
-    saved === "dark" ||
-    saved === "light"
+    saved ===
+      "dark" ||
+    saved ===
+      "light"
   ) {
 
     return saved;
@@ -2745,20 +3135,17 @@ function getPreferredTheme() {
   }
 
 
-  if (
+  return (
     window.matchMedia &&
     window.matchMedia(
       "(prefers-color-scheme: dark)"
     ).matches
-  ) {
+  )
+    ? "dark"
+    : "light";
 
-    return "dark";
-
-  }
-
-
-  return "light";
 }
+
 
 
 function applyTheme(theme) {
@@ -2776,34 +3163,30 @@ function applyTheme(theme) {
   );
 
 
-  const icon =
-    $("#themeIcon");
+  if (
+    $("#themeIcon")
+  ) {
 
-  const text =
-    $("#themeText");
-
-
-  if (theme === "dark") {
-
-    if (icon) {
-      icon.textContent = "☀";
-    }
-
-    if (text) {
-      text.textContent = "สว่าง";
-    }
+    $("#themeIcon")
+      .textContent =
+        theme ===
+          "dark"
+          ? "☀"
+          : "☾";
 
   }
 
-  else {
 
-    if (icon) {
-      icon.textContent = "☾";
-    }
+  if (
+    $("#themeText")
+  ) {
 
-    if (text) {
-      text.textContent = "มืด";
-    }
+    $("#themeText")
+      .textContent =
+        theme ===
+          "dark"
+          ? "สว่าง"
+          : "มืด";
 
   }
 
@@ -2811,36 +3194,37 @@ function applyTheme(theme) {
   if (
     Object.keys(
       state.data
-    ).length > 0
+    ).length
   ) {
 
     renderChart();
 
   }
+
 }
 
-
-function toggleTheme() {
-
-  const current =
-    document.documentElement
-      .getAttribute(
-        "data-theme"
-      ) || "light";
-
-
-  applyTheme(
-    current === "dark"
-      ? "light"
-      : "dark"
-  );
-}
 
 
 $("#themeToggle")
   ?.addEventListener(
     "click",
-    toggleTheme
+    () => {
+
+      const current =
+        document.documentElement
+          .getAttribute(
+            "data-theme"
+          );
+
+
+      applyTheme(
+        current ===
+          "dark"
+          ? "light"
+          : "dark"
+      );
+
+    }
   );
 
 
@@ -2848,11 +3232,13 @@ $("#themeToggle")
 // DOWNLOAD MENU
 // ============================================================
 
+const downloadMenu =
+  $("#downloadMenu");
+
+
 const downloadMenuButton =
   $("#downloadMenuButton");
 
-const downloadMenu =
-  $("#downloadMenu");
 
 
 function updateDownloadMenuInfo() {
@@ -2865,63 +3251,57 @@ function updateDownloadMenuInfo() {
     );
 
 
-  const dateElement =
-    $("#downloadCurrentDate");
+  if (
+    $("#downloadCurrentDate")
+  ) {
 
-  const stationElement =
-    $("#downloadCurrentStation");
+    $("#downloadCurrentDate")
+      .textContent =
+        state.selectedDate
+          ? formatDate(
+              state.selectedDate +
+              "T12:00:00+07:00",
+              {
+                day:
+                  "2-digit",
 
+                month:
+                  "short",
 
-  if (dateElement) {
-
-    if (state.selectedDate) {
-
-      dateElement.textContent =
-        formatDate(
-          `${state.selectedDate}T12:00:00+07:00`,
-          {
-            day: "2-digit",
-            month: "short",
-            year: "numeric"
-          }
-        );
-
-    }
-
-    else {
-
-      dateElement.textContent =
-        "ข้อมูลทั้งหมด";
-
-    }
+                year:
+                  "numeric"
+              }
+            )
+          : "ข้อมูลทั้งหมด";
 
   }
 
 
-  if (stationElement) {
+  if (
+    $("#downloadCurrentStation")
+  ) {
 
-    stationElement.textContent =
-      station
-        ? station.name
-        : "—";
+    $("#downloadCurrentStation")
+      .textContent =
+        station
+          ? station.name
+          : "—";
 
   }
+
 }
+
 
 
 function openDownloadMenu() {
 
-  if (!downloadMenu) {
-    return;
-  }
-
-
   updateDownloadMenuInfo();
 
 
-  downloadMenu.classList.add(
-    "show"
-  );
+  downloadMenu
+    ?.classList.add(
+      "show"
+    );
 
 
   downloadMenuButton
@@ -2929,19 +3309,17 @@ function openDownloadMenu() {
       "aria-expanded",
       "true"
     );
+
 }
+
 
 
 function closeDownloadMenu() {
 
-  if (!downloadMenu) {
-    return;
-  }
-
-
-  downloadMenu.classList.remove(
-    "show"
-  );
+  downloadMenu
+    ?.classList.remove(
+      "show"
+    );
 
 
   downloadMenuButton
@@ -2949,7 +3327,9 @@ function closeDownloadMenu() {
       "aria-expanded",
       "false"
     );
+
 }
+
 
 
 downloadMenuButton
@@ -2981,16 +3361,19 @@ downloadMenuButton
   );
 
 
+
 $("#closeDownloadMenu")
   ?.addEventListener(
     "click",
     event => {
 
       event.stopPropagation();
+
       closeDownloadMenu();
 
     }
   );
+
 
 
 downloadMenu
@@ -3004,10 +3387,12 @@ downloadMenu
   );
 
 
+
 document.addEventListener(
   "click",
   closeDownloadMenu
 );
+
 
 
 document.addEventListener(
@@ -3015,7 +3400,8 @@ document.addEventListener(
   event => {
 
     if (
-      event.key === "Escape"
+      event.key ===
+      "Escape"
     ) {
 
       closeDownloadMenu();
@@ -3027,44 +3413,37 @@ document.addEventListener(
 
 
 // ============================================================
-// DOWNLOAD HELPERS
+// DOWNLOAD FILE
 // ============================================================
 
 function csvCell(value) {
 
-  if (
-    value === null ||
-    value === undefined
-  ) {
-
-    return '""';
-
-  }
-
-
   return (
     '"' +
-    String(value)
-      .replace(
-        /"/g,
-        '""'
-      ) +
+    String(
+      value ?? ""
+    ).replace(
+      /"/g,
+      '""'
+    ) +
     '"'
   );
+
 }
+
 
 
 function downloadBlob(
   content,
   filename,
-  mimeType
+  type
 ) {
 
   const blob =
     new Blob(
       [content],
       {
-        type: mimeType
+        type
       }
     );
 
@@ -3084,104 +3463,77 @@ function downloadBlob(
   link.href =
     url;
 
+
   link.download =
     filename;
 
-  link.style.display =
-    "none";
 
-
-  document.body.appendChild(
-    link
-  );
+  document.body
+    .appendChild(
+      link
+    );
 
 
   link.click();
+
+
   link.remove();
 
 
   setTimeout(
-    () => {
-
+    () =>
       URL.revokeObjectURL(
         url
-      );
-
-    },
+      ),
     1000
   );
+
 }
+
 
 
 function exportDate(timestamp) {
 
-  const date =
-    new Date(timestamp);
-
-
-  if (
-    Number.isNaN(
-      date.getTime()
-    )
-  ) {
-    return "";
-  }
-
-
-  return new Intl.DateTimeFormat(
-    "th-TH",
+  return formatDate(
+    timestamp,
     {
-      timeZone: "Asia/Bangkok",
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric"
+
+      day:
+        "2-digit",
+
+      month:
+        "2-digit",
+
+      year:
+        "numeric"
+
     }
-  ).format(date);
+  );
+
 }
+
 
 
 function exportTime(timestamp) {
 
-  const date =
-    new Date(timestamp);
-
-
-  if (
-    Number.isNaN(
-      date.getTime()
-    )
-  ) {
-    return "";
-  }
-
-
-  return new Intl.DateTimeFormat(
-    "th-TH",
+  return formatDate(
+    timestamp,
     {
-      timeZone: "Asia/Bangkok",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      hour12: false
+
+      hour:
+        "2-digit",
+
+      minute:
+        "2-digit",
+
+      second:
+        "2-digit"
+
     }
-  ).format(date);
+  );
+
 }
 
-
-function safeFileName(text) {
-
-  return String(
-    text || "data"
-  )
-    .replace(
-      /[\\/:*?"<>|]/g,
-      "-"
-    )
-    .replace(
-      /\s+/g,
-      "-"
-    );
-}
 
 
 function getExportReadings(station) {
@@ -3192,7 +3544,9 @@ function getExportReadings(station) {
     ] || [];
 
 
-  if (state.selectedDate) {
+  if (
+    state.selectedDate
+  ) {
 
     readings =
       readings.filter(
@@ -3207,7 +3561,9 @@ function getExportReadings(station) {
 
 
   return readings;
+
 }
+
 
 
 function createStationCsv(
@@ -3215,54 +3571,57 @@ function createStationCsv(
   readings
 ) {
 
-  const rows = [
-
+  const rows =
     [
-      "สถานี",
-      "วันที่",
-      "เวลา",
-      "ระดับน้ำ (m)",
-      "Latitude",
-      "Longitude"
-    ]
 
-  ];
+      [
+        "สถานี",
+        "วันที่",
+        "เวลา",
+        "ระดับน้ำ (m)",
+        "Latitude",
+        "Longitude"
+      ]
+
+    ];
 
 
   readings.forEach(
     reading => {
 
-      rows.push([
+      rows.push(
+        [
 
-        station.name,
+          station.name,
 
-        exportDate(
-          reading.timestamp
-        ),
+          exportDate(
+            reading.timestamp
+          ),
 
-        exportTime(
-          reading.timestamp
-        ),
+          exportTime(
+            reading.timestamp
+          ),
 
-        Number.isFinite(
-          reading.level
-        )
-          ? reading.level.toFixed(3)
-          : "",
+          Number.isFinite(
+            reading.level
+          )
+            ? reading.level.toFixed(3)
+            : "",
 
-        Number.isFinite(
-          reading.latitude
-        )
-          ? reading.latitude.toFixed(6)
-          : "",
+          Number.isFinite(
+            reading.latitude
+          )
+            ? reading.latitude.toFixed(6)
+            : "",
 
-        Number.isFinite(
-          reading.longitude
-        )
-          ? reading.longitude.toFixed(6)
-          : ""
+          Number.isFinite(
+            reading.longitude
+          )
+            ? reading.longitude.toFixed(6)
+            : ""
 
-      ]);
+        ]
+      );
 
     }
   );
@@ -3272,16 +3631,17 @@ function createStationCsv(
     .map(
       row =>
         row
-          .map(csvCell)
+          .map(
+            csvCell
+          )
           .join(",")
     )
     .join("\r\n");
+
 }
 
 
-// ============================================================
-// DOWNLOAD SELECTED
-// ============================================================
+// SELECTED
 
 $("#downloadSelectedCsv")
   ?.addEventListener(
@@ -3296,27 +3656,18 @@ $("#downloadSelectedCsv")
         );
 
 
-      if (!station) {
-
-        alert(
-          "ไม่พบข้อมูลสถานี"
-        );
-
-        return;
-
-      }
-
-
       const readings =
         getExportReadings(
           station
         );
 
 
-      if (!readings.length) {
+      if (
+        !readings.length
+      ) {
 
         alert(
-          "ไม่มีข้อมูลของสถานีนี้ในวันที่เลือก"
+          "ไม่มีข้อมูลสำหรับวันที่เลือก"
         );
 
         return;
@@ -3324,30 +3675,18 @@ $("#downloadSelectedCsv")
       }
 
 
-      const csv =
+      downloadBlob(
+
+        "\uFEFF" +
         createStationCsv(
           station,
           readings
-        );
+        ),
 
+        `station-${station.id}-${state.selectedDate || "all"}.csv`,
 
-      const filename =
-        safeFileName(
-          `${
-            station.shortName ||
-            station.name
-          }-${
-            state.selectedDate ||
-            "all"
-          }`
-        ) +
-        ".csv";
-
-
-      downloadBlob(
-        "\uFEFF" + csv,
-        filename,
         "text/csv;charset=utf-8"
+
       );
 
 
@@ -3357,30 +3696,30 @@ $("#downloadSelectedCsv")
   );
 
 
-// ============================================================
-// DOWNLOAD ALL STATIONS
-// ============================================================
+// ALL
 
 $("#downloadAllCsv")
   ?.addEventListener(
     "click",
     () => {
 
-      const rows = [
-
+      const rows =
         [
-          "สถานี",
-          "วันที่",
-          "เวลา",
-          "ระดับน้ำ (m)",
-          "Latitude",
-          "Longitude"
-        ]
 
-      ];
+          [
+            "สถานี",
+            "วันที่",
+            "เวลา",
+            "ระดับน้ำ (m)",
+            "Latitude",
+            "Longitude"
+          ]
+
+        ];
 
 
-      let totalRecords = 0;
+      let total =
+        0;
 
 
       stations.forEach(
@@ -3395,40 +3734,42 @@ $("#downloadAllCsv")
           readings.forEach(
             reading => {
 
-              totalRecords++;
+              total++;
 
 
-              rows.push([
+              rows.push(
+                [
 
-                station.name,
+                  station.name,
 
-                exportDate(
-                  reading.timestamp
-                ),
+                  exportDate(
+                    reading.timestamp
+                  ),
 
-                exportTime(
-                  reading.timestamp
-                ),
+                  exportTime(
+                    reading.timestamp
+                  ),
 
-                Number.isFinite(
-                  reading.level
-                )
-                  ? reading.level.toFixed(3)
-                  : "",
+                  Number.isFinite(
+                    reading.level
+                  )
+                    ? reading.level.toFixed(3)
+                    : "",
 
-                Number.isFinite(
-                  reading.latitude
-                )
-                  ? reading.latitude.toFixed(6)
-                  : "",
+                  Number.isFinite(
+                    reading.latitude
+                  )
+                    ? reading.latitude.toFixed(6)
+                    : "",
 
-                Number.isFinite(
-                  reading.longitude
-                )
-                  ? reading.longitude.toFixed(6)
-                  : ""
+                  Number.isFinite(
+                    reading.longitude
+                  )
+                    ? reading.longitude.toFixed(6)
+                    : ""
 
-              ]);
+                ]
+              );
 
             }
           );
@@ -3438,7 +3779,7 @@ $("#downloadAllCsv")
 
 
       if (
-        totalRecords === 0
+        total === 0
       ) {
 
         alert(
@@ -3455,16 +3796,23 @@ $("#downloadAllCsv")
           .map(
             row =>
               row
-                .map(csvCell)
+                .map(
+                  csvCell
+                )
                 .join(",")
           )
           .join("\r\n");
 
 
       downloadBlob(
-        "\uFEFF" + csv,
-        `water-monitoring-${state.selectedDate || "all"}.csv`,
+
+        "\uFEFF" +
+        csv,
+
+        `water-all-${state.selectedDate || "all"}.csv`,
+
         "text/csv;charset=utf-8"
+
       );
 
 
@@ -3474,19 +3822,19 @@ $("#downloadAllCsv")
   );
 
 
-// ============================================================
-// DOWNLOAD SUMMARY
-// ============================================================
+// SUMMARY
 
 $("#downloadSummaryCsv")
   ?.addEventListener(
     "click",
     () => {
 
-      if (!state.selectedDate) {
+      if (
+        !state.selectedDate
+      ) {
 
         alert(
-          "กรุณาเลือกวันที่ก่อนดาวน์โหลดสรุปรายวัน"
+          "กรุณาเลือกวันที่"
         );
 
         return;
@@ -3494,22 +3842,20 @@ $("#downloadSummaryCsv")
       }
 
 
-      const rows = [
-
+      const rows =
         [
-          "สถานี",
-          "วันที่",
-          "ค่าล่าสุด (m)",
-          "ค่าเฉลี่ย (m)",
-          "ต่ำสุด (m)",
-          "สูงสุด (m)",
-          "จำนวนข้อมูล"
-        ]
 
-      ];
+          [
+            "สถานี",
+            "วันที่",
+            "ค่าล่าสุด",
+            "ค่าเฉลี่ย",
+            "ต่ำสุด",
+            "สูงสุด",
+            "จำนวนข้อมูล"
+          ]
 
-
-      let hasData = false;
+        ];
 
 
       stations.forEach(
@@ -3522,52 +3868,38 @@ $("#downloadSummaryCsv")
             );
 
 
-          if (stats) {
-            hasData = true;
-          }
+          rows.push(
+            [
 
+              station.name,
 
-          rows.push([
+              state.selectedDate,
 
-            station.name,
+              stats
+                ? stats.latest.toFixed(3)
+                : "",
 
-            state.selectedDate,
+              stats
+                ? stats.average.toFixed(3)
+                : "",
 
-            stats
-              ? stats.latest.toFixed(3)
-              : "",
+              stats
+                ? stats.min.toFixed(3)
+                : "",
 
-            stats
-              ? stats.average.toFixed(3)
-              : "",
+              stats
+                ? stats.max.toFixed(3)
+                : "",
 
-            stats
-              ? stats.min.toFixed(3)
-              : "",
+              stats
+                ? stats.count
+                : 0
 
-            stats
-              ? stats.max.toFixed(3)
-              : "",
-
-            stats
-              ? stats.count
-              : 0
-
-          ]);
+            ]
+          );
 
         }
       );
-
-
-      if (!hasData) {
-
-        alert(
-          "ไม่มีข้อมูลสำหรับวันที่เลือก"
-        );
-
-        return;
-
-      }
 
 
       const csv =
@@ -3575,16 +3907,23 @@ $("#downloadSummaryCsv")
           .map(
             row =>
               row
-                .map(csvCell)
+                .map(
+                  csvCell
+                )
                 .join(",")
           )
           .join("\r\n");
 
 
       downloadBlob(
-        "\uFEFF" + csv,
+
+        "\uFEFF" +
+        csv,
+
         `water-summary-${state.selectedDate}.csv`,
+
         "text/csv;charset=utf-8"
+
       );
 
 
@@ -3594,81 +3933,59 @@ $("#downloadSummaryCsv")
   );
 
 
-// ============================================================
-// JSON BACKUP
-// ============================================================
+// JSON
 
 $("#downloadJson")
   ?.addEventListener(
     "click",
     () => {
 
-      const backupData = {
+      const backup =
+        {
 
-        system:
-          "RMUTL Flood Monitoring",
+          system:
+            "RMUTL Flood Monitoring",
 
-        exportedAt:
-          new Date()
-            .toISOString(),
+          exportedAt:
+            new Date()
+              .toISOString(),
 
-        timezone:
-          "Asia/Bangkok",
+          selectedDate:
+            state.selectedDate,
 
-        selectedDate:
-          state.selectedDate || null,
+          stations:
+            stations.map(
+              station => ({
 
-        selectedStation:
-          state.selectedStationId,
+                id:
+                  station.id,
 
-        stations:
-          stations.map(
-            station => ({
+                name:
+                  station.name,
 
-              id:
-                station.id,
+                readings:
+                  state.data[
+                    station.id
+                  ] || []
 
-              name:
-                station.name,
+              })
+            )
 
-              shortName:
-                station.shortName,
-
-              unit:
-                station.unit,
-
-              warningLevel:
-                station.warningLevel,
-
-              readings:
-                state.data[
-                  station.id
-                ] || []
-
-            })
-          )
-
-      };
-
-
-      const json =
-        JSON.stringify(
-          backupData,
-          null,
-          2
-        );
-
-
-      const today =
-        dateKey(
-          new Date()
-        ) || "backup";
+        };
 
 
       downloadBlob(
-        json,
-        `water-monitoring-backup-${today}.json`,
+
+        JSON.stringify(
+          backup,
+          null,
+          2
+        ),
+
+        "water-monitoring-backup.json",
+
         "application/json;charset=utf-8"
+
       );
 
 
@@ -3679,7 +3996,7 @@ $("#downloadJson")
 
 
 // ============================================================
-// RENDER EVERYTHING
+// RENDER
 // ============================================================
 
 function renderEverything(
@@ -3687,15 +4004,23 @@ function renderEverything(
 ) {
 
   renderCards();
+
   renderStationSelect();
-  renderModeButtons();
+
   renderDateInput();
+
+  renderModeButtons();
+
   renderSummary();
+
   renderChart();
+
   updateDownloadMenuInfo();
 
 
-  if (!state.map) {
+  if (
+    !state.map
+  ) {
 
     setupMap();
 
@@ -3729,45 +4054,35 @@ function renderEverything(
         );
 
 
-      if (
-        Number.isFinite(
-          coords[0]
-        ) &&
-        Number.isFinite(
-          coords[1]
-        )
-      ) {
-
-        state.map.flyTo(
-          coords,
-          16,
-          {
-            duration: 0.7
-          }
-        );
-
-      }
+      state.map.flyTo(
+        coords,
+        16,
+        {
+          duration:
+            0.7
+        }
+      );
 
     }
 
   }
+
 }
 
 
 // ============================================================
-// REFRESH GOOGLE SHEETS
+// REFRESH
 // ============================================================
 
 async function refreshData() {
 
-  const globalUpdated =
-    $("#globalUpdated");
+  if (
+    $("#globalUpdated")
+  ) {
 
-
-  if (globalUpdated) {
-
-    globalUpdated.textContent =
-      "กำลังโหลดข้อมูล...";
+    $("#globalUpdated")
+      .textContent =
+        "กำลังโหลดข้อมูล...";
 
   }
 
@@ -3793,41 +4108,43 @@ async function refreshData() {
 
   const newest =
     stations
+
       .map(
         station =>
           latestReading(
             station
           )
       )
-      .filter(
-        reading =>
-          reading &&
-          reading.timestamp &&
-          !Number.isNaN(
-            new Date(
-              reading.timestamp
-            ).getTime()
-          )
-      )
+
+      .filter(Boolean)
+
       .sort(
-        (a, b) =>
+        (a,b) =>
           new Date(
             b.timestamp
-          ) -
+          )
+          -
           new Date(
             a.timestamp
           )
       )[0];
 
 
-  if (globalUpdated) {
+  if (
+    $("#globalUpdated")
+  ) {
 
-    globalUpdated.textContent =
-      newest
-        ? `ข้อมูลล่าสุด · ${formatDate(newest.timestamp)}`
-        : "ยังไม่มีข้อมูลจากสถานี";
+    $("#globalUpdated")
+      .textContent =
+        newest
+          ? "ข้อมูลล่าสุด · " +
+            formatDate(
+              newest.timestamp
+            )
+          : "ไม่มีข้อมูล";
 
   }
+
 }
 
 
@@ -3843,13 +4160,18 @@ $("#stationSelect")
       state.selectedStationId =
         event.target.value;
 
+
       state.chartMode =
         "station";
+
 
       state.selectedDate =
         "";
 
-      renderEverything(true);
+
+      renderEverything(
+        true
+      );
 
     }
   );
@@ -3863,8 +4185,11 @@ $("#dateInput")
       state.selectedDate =
         event.target.value;
 
+
       renderSummary();
+
       renderChart();
+
       updateDownloadMenuInfo();
 
     }
@@ -3879,14 +4204,12 @@ $("#chartModeStation")
       state.chartMode =
         "station";
 
+
       state.selectedDate =
         "";
 
-      renderModeButtons();
-      renderDateInput();
-      renderSummary();
-      renderChart();
-      updateDownloadMenuInfo();
+
+      renderEverything();
 
     }
   );
@@ -3900,14 +4223,12 @@ $("#chartModeAll")
       state.chartMode =
         "all";
 
+
       state.selectedDate =
         "";
 
-      renderModeButtons();
-      renderDateInput();
-      renderSummary();
-      renderChart();
-      updateDownloadMenuInfo();
+
+      renderEverything();
 
     }
   );
@@ -3918,7 +4239,29 @@ $("#previousDate")
     "click",
     () => {
 
-      changeDate(-1);
+      const dates =
+        getAvailableDates();
+
+
+      const index =
+        dates.indexOf(
+          state.selectedDate
+        );
+
+
+      if (
+        index > 0
+      ) {
+
+        state.selectedDate =
+          dates[
+            index - 1
+          ];
+
+
+        renderEverything();
+
+      }
 
     }
   );
@@ -3929,7 +4272,31 @@ $("#nextDate")
     "click",
     () => {
 
-      changeDate(1);
+      const dates =
+        getAvailableDates();
+
+
+      const index =
+        dates.indexOf(
+          state.selectedDate
+        );
+
+
+      if (
+        index >= 0 &&
+        index <
+          dates.length - 1
+      ) {
+
+        state.selectedDate =
+          dates[
+            index + 1
+          ];
+
+
+        renderEverything();
+
+      }
 
     }
   );
@@ -3938,11 +4305,7 @@ $("#nextDate")
 $("#refreshButton")
   ?.addEventListener(
     "click",
-    () => {
-
-      refreshData();
-
-    }
+    refreshData
   );
 
 
@@ -3952,20 +4315,21 @@ $("#refreshButton")
 
 function updateClock() {
 
-  const clock =
-    $("#liveClock");
+  if (
+    !$("#liveClock")
+  ) {
 
-  if (!clock) {
     return;
+
   }
 
 
-  try {
-
-    clock.textContent =
+  $("#liveClock")
+    .textContent =
       new Intl.DateTimeFormat(
         "th-TH",
         {
+
           timeZone:
             "Asia/Bangkok",
 
@@ -3974,19 +4338,12 @@ function updateClock() {
 
           timeStyle:
             "medium"
+
         }
       ).format(
         new Date()
       );
 
-  }
-
-  catch (error) {
-
-    clock.textContent =
-      "—";
-
-  }
 }
 
 
@@ -4008,7 +4365,7 @@ setInterval(
 );
 
 
-// เว็บดึง Google Sheet ใหม่ทุก 1 นาที
+// รีเฟรช Google Sheets ทุก 1 นาที
 
 setInterval(
   refreshData,
