@@ -2,245 +2,296 @@
 <html lang="th">
 
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
 
   <meta
     name="viewport"
     content="width=device-width, initial-scale=1.0"
-  />
+  >
 
-  <meta
-    name="description"
-    content="ระบบติดตามระดับน้ำแบบออนไลน์"
-  />
+  <title>RMUTL Flood Monitoring</title>
 
-  <title>ระบบติดตามระดับน้ำ</title>
-
-  <!-- =========================
-       Google Font
-  ========================== -->
+  <!-- Google Font -->
   <link
     rel="preconnect"
     href="https://fonts.googleapis.com"
-  />
+  >
 
   <link
     rel="preconnect"
     href="https://fonts.gstatic.com"
     crossorigin
-  />
+  >
 
   <link
     href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap"
     rel="stylesheet"
-  />
+  >
 
-  <!-- =========================
-       Leaflet Map CSS
-  ========================== -->
+  <!-- Leaflet -->
   <link
     rel="stylesheet"
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    crossorigin=""
-  />
+  >
 
-  <!-- =========================
-       Website CSS
-  ========================== -->
+  <!-- CSS -->
   <link
     rel="stylesheet"
-    href="styles.css?v=20260812-3"
-  />
-
+    href="styles.css?v=20260812-10"
+  >
 </head>
 
 
 <body>
 
-  <!-- =====================================================
+  <!-- =======================================================
        HEADER
-  ====================================================== -->
+  ======================================================== -->
 
   <header class="site-header">
 
-    <div class="header-title">
+    <div class="header-content">
 
-      <p class="eyebrow">
-        WATER MONITORING
-      </p>
+      <div class="brand-area">
 
-      <h1>
-        ระบบติดตามระดับน้ำ
-      </h1>
+        <div class="brand-icon">
+          ≋
+        </div>
 
-      <p class="subtitle">
-        ข้อมูลจากสถานีวัดระดับน้ำแบบออนไลน์
-      </p>
+        <div>
 
-    </div>
+          <p class="header-eyebrow">
+            RMUTL FLOOD MONITORING
+          </p>
+
+          <h1>
+            ระบบติดตามระดับน้ำ
+          </h1>
+
+          <p class="subtitle">
+            ระบบตรวจวัดและติดตามสถานการณ์ระดับน้ำแบบออนไลน์
+          </p>
+
+        </div>
+
+      </div>
 
 
-    <div class="header-info">
+      <div class="header-status">
 
-      <p id="liveClock">
-        กำลังโหลดเวลา...
-      </p>
+        <div class="header-status-item">
 
-      <p id="globalUpdated">
-        กำลังโหลดข้อมูล...
-      </p>
+          <span class="online-dot"></span>
+
+          <div>
+            <small>สถานะระบบ</small>
+            <strong>Online</strong>
+          </div>
+
+        </div>
+
+
+        <div class="header-status-item">
+
+          <div>
+            <small>เวลาปัจจุบัน</small>
+            <strong id="liveClock">
+              กำลังโหลด...
+            </strong>
+          </div>
+
+        </div>
+
+      </div>
 
     </div>
 
   </header>
 
 
-  <!-- =====================================================
+  <!-- =======================================================
        MAIN
-  ====================================================== -->
+  ======================================================== -->
 
   <main>
 
 
-    <!-- =================================================
+    <!-- =====================================================
+         TOP INFORMATION
+    ====================================================== -->
+
+    <section class="dashboard-heading">
+
+      <div>
+
+        <p class="section-eyebrow">
+          OVERVIEW
+        </p>
+
+        <h2>
+          ภาพรวมสถานีตรวจวัด
+        </h2>
+
+        <p>
+          แสดงข้อมูลล่าสุดจาก Google Sheets ของแต่ละสถานี
+        </p>
+
+      </div>
+
+
+      <div
+        id="globalUpdated"
+        class="last-update"
+      >
+        กำลังโหลดข้อมูล...
+      </div>
+
+    </section>
+
+
+
+    <!-- =====================================================
          STATION CARDS
-    ================================================== -->
+    ====================================================== -->
 
     <section
       class="station-grid"
       id="stationCards"
-    >
+    ></section>
 
-      <!-- app.js จะสร้างการ์ดสถานีตรงนี้ -->
+
+
+    <!-- =====================================================
+         FILTER
+    ====================================================== -->
+
+    <section class="filter-panel">
+
+
+      <div class="filter-title">
+
+        <div class="filter-icon">
+          ☰
+        </div>
+
+        <div>
+          <strong>
+            ตัวเลือกการแสดงผล
+          </strong>
+
+          <span>
+            เลือกสถานีและวันที่ที่ต้องการดูข้อมูล
+          </span>
+        </div>
+
+      </div>
+
+
+      <div class="filter-controls">
+
+
+        <div class="control-item">
+
+          <label for="stationSelect">
+            สถานี
+          </label>
+
+          <select id="stationSelect">
+          </select>
+
+        </div>
+
+
+        <div class="control-item">
+
+          <label for="dateInput">
+            วันที่
+          </label>
+
+          <input
+            id="dateInput"
+            type="date"
+          >
+
+        </div>
+
+
+        <div class="date-buttons">
+
+          <button
+            id="previousDate"
+            type="button"
+            class="secondary-button"
+          >
+            ‹ วันก่อนหน้า
+          </button>
+
+          <button
+            id="nextDate"
+            type="button"
+            class="secondary-button"
+          >
+            วันถัดไป ›
+          </button>
+
+        </div>
+
+
+        <button
+          id="refreshButton"
+          type="button"
+          class="primary-button"
+        >
+          ↻ รีเฟรช
+        </button>
+
+
+      </div>
 
     </section>
 
 
 
-    <!-- =================================================
-         CONTROL PANEL
-    ================================================== -->
-
-    <section class="control-panel">
-
-
-      <!-- เลือกสถานี -->
-
-      <div class="control-item">
-
-        <label for="stationSelect">
-          เลือกสถานี
-        </label>
-
-        <select id="stationSelect">
-
-          <!-- app.js จะเพิ่มสถานี -->
-
-        </select>
-
-      </div>
-
-
-
-      <!-- เลือกวันที่ -->
-
-      <div class="control-item">
-
-        <label for="dateInput">
-          เลือกวันที่ดูย้อนหลัง
-        </label>
-
-        <input
-          type="date"
-          id="dateInput"
-        />
-
-      </div>
-
-
-
-      <!-- ปุ่มเปลี่ยนวัน -->
-
-      <div class="date-buttons">
-
-        <button
-          id="previousDate"
-          type="button"
-        >
-          ‹ วันก่อนหน้า
-        </button>
-
-
-        <button
-          id="nextDate"
-          type="button"
-        >
-          วันถัดไป ›
-        </button>
-
-      </div>
-
-
-
-      <!-- Refresh -->
-
-      <button
-        id="refreshButton"
-        class="refresh-button"
-        type="button"
-      >
-        ↻ รีเฟรชข้อมูล
-      </button>
-
-    </section>
-
-
-
-    <!-- =================================================
+    <!-- =====================================================
          CHART MODE
-    ================================================== -->
+    ====================================================== -->
 
-    <section class="chart-mode-panel">
-
+    <section class="mode-panel">
 
       <div>
 
-        <p class="chart-mode-label">
-          รูปแบบการแสดงกราฟ
+        <p class="section-eyebrow">
+          GRAPH VIEW
         </p>
 
-        <p class="chart-mode-help">
-          ระบบคำนวณค่าเฉลี่ยระดับน้ำทุก 1 ชั่วโมง
-        </p>
+        <strong>
+          รูปแบบการแสดงกราฟ
+        </strong>
+
+        <span>
+          ข้อมูลถูกสรุปเป็นค่าเฉลี่ยรายชั่วโมง
+        </span>
 
       </div>
 
 
-
-      <div class="chart-mode-buttons">
-
-
-        <!-- กราฟสถานีเดียว -->
+      <div class="mode-switch">
 
         <button
           id="chartModeStation"
-          class="chart-mode-button active"
+          class="mode-button active"
           type="button"
         >
-          สถานีที่เลือก
+          ◉ สถานีที่เลือก
         </button>
-
-
-        <!-- กราฟรวม -->
 
         <button
           id="chartModeAll"
-          class="chart-mode-button"
+          class="mode-button"
           type="button"
         >
-          เปรียบเทียบ 3 สถานี
+          ≋ เปรียบเทียบ 3 สถานี
         </button>
-
 
       </div>
 
@@ -248,38 +299,33 @@
 
 
 
-    <!-- =================================================
-         SUMMARY
-    ================================================== -->
+    <!-- =====================================================
+         DAILY SUMMARY
+    ====================================================== -->
 
     <section
       id="chartSummary"
-      class="chart-summary"
-    >
-    </section>
+      class="summary-grid"
+    ></section>
 
 
 
-    <!-- =================================================
-         GRAPH + MAP
-    ================================================== -->
+    <!-- =====================================================
+         CHART + MAP
+    ====================================================== -->
 
     <section class="content-grid">
 
 
-      <!-- ===============================================
-           GRAPH
-      ================================================ -->
+      <!-- CHART -->
 
-      <article class="panel chart-panel">
-
+      <article class="dashboard-panel chart-panel">
 
         <div class="panel-heading">
 
-
           <div>
 
-            <p class="eyebrow">
+            <p class="section-eyebrow">
               HOURLY WATER LEVEL
             </p>
 
@@ -294,80 +340,77 @@
           </div>
 
 
-          <span
-            class="unit-badge"
-            id="unitLabel"
-          >
-            เมตร
-          </span>
+          <div class="unit-pill">
 
+            <span class="unit-dot"></span>
+
+            <span id="unitLabel">
+              เมตร
+            </span>
+
+          </div>
 
         </div>
 
 
-
-        <!-- Chart -->
-
-        <div class="chart-wrap">
+        <div class="chart-container">
 
           <canvas id="waterChart"></canvas>
 
         </div>
 
 
-
-        <p
-          class="chart-note"
+        <div
           id="chartNotice"
+          class="chart-notice"
         >
-          กราฟแสดงค่าเฉลี่ยระดับน้ำรายชั่วโมง
-        </p>
-
+          กำลังโหลดข้อมูล...
+        </div>
 
       </article>
 
 
 
-      <!-- ===============================================
-           MAP
-      ================================================ -->
+      <!-- MAP -->
 
-      <article class="panel map-panel">
-
+      <article class="dashboard-panel map-panel">
 
         <div class="panel-heading">
 
-
           <div>
 
-            <p class="eyebrow">
-              STATION LOCATION
+            <p class="section-eyebrow">
+              LIVE LOCATION
             </p>
 
             <h2>
-              แผนที่ตำแหน่งสถานี
+              ตำแหน่งสถานี
             </h2>
 
-            <p class="panel-subtitle">
-              พิกัดตำแหน่งล่าสุดจาก Google Sheets
+            <p>
+              พิกัดล่าสุดจาก Google Sheets
             </p>
 
           </div>
 
 
+          <span class="satellite-badge">
+            ◉ Satellite
+          </span>
+
         </div>
 
-
-
-        <!-- Leaflet Map -->
 
         <div id="map"></div>
 
 
-        <p class="map-note">
-          แผนที่จะแสดงตำแหน่งล่าสุดของทั้ง 3 สถานี
-        </p>
+        <div class="map-description">
 
+          <span class="online-dot"></span>
+
+          หมุดแสดงพิกัดล่าสุดที่ได้รับจากแต่ละสถานี
+
+        </div>
 
       </article>
 
@@ -379,59 +422,42 @@
 
 
 
-  <!-- =====================================================
+  <!-- =======================================================
        FOOTER
-  ====================================================== -->
+  ======================================================== -->
 
   <footer>
 
-    ระบบติดตามระดับน้ำ
-    ·
-    ข้อมูลจาก Google Sheets
-    ·
-    RMUTL Flood Monitor
+    <div>
+      RMUTL Flood Monitoring System
+    </div>
+
+    <span>
+      ข้อมูลจาก Google Sheets · อัปเดตอัตโนมัติทุก 1 นาที
+    </span>
 
   </footer>
 
 
 
-  <!-- =====================================================
-       JAVASCRIPT LIBRARIES
-  ====================================================== -->
-
-
-  <!-- Chart.js -->
+  <!-- =======================================================
+       LIBRARIES
+  ======================================================== -->
 
   <script
     src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"
   ></script>
 
-
-
-  <!-- Leaflet Map -->
-
   <script
     src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-    crossorigin=""
   ></script>
 
 
+  <!-- CONFIG เดิมของคุณ -->
+  <script src="config.js?v=20260812-10"></script>
 
-  <!-- =====================================================
-       CONFIG
-       ต้องโหลด config.js ก่อน app.js
-  ====================================================== -->
-
-  <script src="config.js?v=20260812-3"></script>
-
-
-
-  <!-- =====================================================
-       MAIN APPLICATION
-  ====================================================== -->
-
-  <script src="app.js?v=20260812-3"></script>
-
+  <!-- APP -->
+  <script src="app.js?v=20260812-10"></script>
 
 </body>
 
