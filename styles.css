@@ -547,7 +547,8 @@ main {
 
 
 .station-status {
-     display: inline-flex;
+
+  display: inline-flex;
 
   align-items: center;
 
@@ -1097,7 +1098,7 @@ main {
   align-items: center;
 
   gap: 10px;
-     min-height: 83px;
+    min-height: 83px;
 
   padding: 12px;
 
@@ -2196,8 +2197,7 @@ main {
   gap: 9px;
 
   margin-top: 9px;
-
-  padding:
+    padding:
     11px 16px;
 
   border-top:
@@ -2898,4 +2898,90 @@ html[data-theme="dark"] .station-dialog input {
   .dialog-grid {
     grid-template-columns: 1fr;
   }
+}
+
+
+/* ============================================================
+   HELP BUTTONS
+============================================================ */
+
+.section-help {
+  position: relative;
+  z-index: 5;
+  flex: 0 0 auto;
+}
+
+.section-help summary {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--primary);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  list-style: none;
+}
+
+.section-help summary::-webkit-details-marker {
+  display: none;
+}
+
+.section-help div {
+  position: absolute;
+  top: 34px;
+  right: 0;
+  width: min(290px, calc(100vw - 42px));
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.65;
+  box-shadow: var(--shadow);
+}
+
+.section-help div strong {
+  color: var(--text);
+}
+
+.section-help-inline {
+  margin-left: auto;
+}
+
+.section-help-panel {
+  margin-left: 8px;
+}
+
+.station-form-help {
+  padding: 9px 10px;
+  border-radius: 9px;
+  background: var(--surface-soft);
+  color: #617985;
+  font-size: 9px;
+}
+
+.station-form-help summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.station-form-help p {
+  margin: 7px 0 0;
+}
+
+html[data-theme="dark"] .section-help summary,
+html[data-theme="dark"] .section-help div,
+html[data-theme="dark"] .station-form-help {
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--muted);
+}
+
+html[data-theme="dark"] .section-help div strong {
+  color: var(--text);
 }
