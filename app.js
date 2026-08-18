@@ -1,5 +1,20 @@
-const stations =
+const defaultStations =
   window.WATER_APP_CONFIG.stations;
+
+const CUSTOM_STATIONS_KEY =
+  "rmutl-flood-monitor-custom-stations";
+
+function loadCustomStations() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(CUSTOM_STATIONS_KEY) || "[]");
+    return Array.isArray(saved) ? saved : [];
+  } catch {
+    return [];
+  }
+}
+
+const stations =
+  [...defaultStations, ...loadCustomStations()];
 
 
 const state = {
@@ -1033,8 +1048,7 @@ function parseCsv(csvText) {
     if (!timestamp) {
 
       continue;
-
-    }
+          }
 
 
     results.push({
@@ -2083,7 +2097,7 @@ function renderSummary() {
     },
 
     {
-      icon:
+            icon:
         "↑",
       title:
         "สูงสุด",
@@ -3133,9 +3147,7 @@ function getPreferredTheme() {
     return saved;
 
   }
-
-
-  return (
+    return (
     window.matchMedia &&
     window.matchMedia(
       "(prefers-color-scheme: dark)"
@@ -4348,6 +4360,82 @@ function updateClock() {
 
 
 // ============================================================
+// ADD STATION
+// ============================================================
+
+function closeAddStationDialog() {
+  const dialog = $("#addStationDialog");
+
+  if (dialog?.open) {
+    dialog.close();
+  }
+}
+
+function setupAddStationMenu() {
+  const dialog = $("#addStationDialog");
+  const form = $("#addStationForm");
+
+  $("#addStationButton")?.addEventListener(
+    "click",
+    () => dialog?.showModal()
+  );
+
+  $("#closeStationDialog")?.addEventListener(
+    "click",
+    closeAddStationDialog
+  );
+
+  $("#cancelStationDialog")?.addEventListener(
+    "click",
+    closeAddStationDialog
+  );
+
+  form?.addEventListener("submit", event => {
+    event.preventDefault();
+
+    const values = new FormData(form);
+    const color = String(values.get("color") || "#14B8A6");
+
+    const station = {
+      id: `station-${Date.now()}`,
+      name: String(values.get("name")).trim(),
+      shortName: String(values.get("shortName")).trim(),
+      deployed: true,
+      latitude: Number(values.get("latitude")),
+      longitude: Number(values.get("longitude")),
+      googleSheetCsv: String(values.get("googleSheetCsv")).trim(),
+      unit: "เมตร",
+      warningLevel: Number(values.get("warningLevel")),
+      color: color,
+      softColor: hexToRgba(color, .12)
+    };
+
+    stations.push(station);
+
+    const customStations = stations.filter(
+      item => !defaultStations.some(
+        base => base.id === item.id
+      )
+    );
+
+    localStorage.setItem(
+      CUSTOM_STATIONS_KEY,
+      JSON.stringify(customStations)
+    );
+
+    state.selectedStationId = station.id;
+    state.selectedDate = "";
+
+    form.reset();
+
+    closeAddStationDialog();
+
+    refreshData();
+  });
+}
+
+
+// ============================================================
 // START
 // ============================================================
 
@@ -4355,22 +4443,18 @@ applyTheme(
   getPreferredTheme()
 );
 
+setupAddStationMenu();
 
 updateClock();
-
 
 setInterval(
   updateClock,
   1000
 );
 
-
-// รีเฟรช Google Sheets ทุก 1 นาที
-
 setInterval(
   refreshData,
   60000
 );
-
 
 refreshData();
