@@ -2985,3 +2985,13 @@ html[data-theme="dark"] .station-form-help {
 html[data-theme="dark"] .section-help div strong {
   color: var(--text);
 }
+/* กล่องคำแนะนำในกราฟและแผนที่ เปิดขึ้นด้านบน ไม่ทับแผนที่ */
+
+.dashboard-panel .section-help {
+  z-index: 1000;
+}
+
+.dashboard-panel .section-help div {
+  top: auto;
+  bottom: 34px;
+}
