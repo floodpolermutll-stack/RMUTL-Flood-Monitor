@@ -140,6 +140,16 @@
                   ×
                 </button>
 
+                <details class="station-form-help">
+                  <summary>วิธีดาวน์โหลด</summary>
+
+                  <p>
+                    เลือกข้อมูลสถานีที่เลือก ข้อมูลรวมทุกสถานี
+                    สรุปรายวัน หรือไฟล์สำรอง JSON
+                    การดาวน์โหลดจะไม่แก้ไข Google Sheets
+                  </p>
+                </details>
+
               </div>
 
               <div class="download-current-info">
@@ -323,6 +333,16 @@
         กำลังโหลดข้อมูล...
       </div>
 
+      <details class="section-help">
+        <summary>?</summary>
+
+        <div>
+          <strong>วิธีใช้ภาพรวม</strong><br>
+          คลิกการ์ดสถานีเพื่อเลือกดูข้อมูลระดับน้ำล่าสุด
+          ค่าต่ำสุด และค่าสูงสุด
+        </div>
+      </details>
+
     </section>
 
     <section
@@ -392,6 +412,16 @@
           ↻ รีเฟรช
         </button>
 
+        <details class="section-help section-help-inline">
+          <summary>?</summary>
+
+          <div>
+            <strong>วิธีเลือกข้อมูล</strong><br>
+            เลือกสถานีและวันที่ ใช้ปุ่มวันก่อนหน้า/วันถัดไป
+            เพื่อดูข้อมูลย้อนหลัง แล้วกดรีเฟรชเมื่อต้องการโหลดข้อมูลใหม่
+          </div>
+        </details>
+
       </div>
 
     </section>
@@ -430,6 +460,16 @@
 
       </div>
 
+      <details class="section-help section-help-inline">
+        <summary>?</summary>
+
+        <div>
+          <strong>วิธีดูกราฟ</strong><br>
+          เลือกสถานีที่เลือกเพื่อดูรายละเอียดจุดเดียว
+          หรือเปรียบเทียบทุกสถานีเพื่อเทียบเส้นกราฟพร้อมกัน
+        </div>
+      </details>
+
     </section>
 
     <section
@@ -464,6 +504,16 @@
               เมตร
             </span>
           </div>
+
+          <details class="section-help section-help-panel">
+            <summary>?</summary>
+
+            <div>
+              <strong>วิธีอ่านกราฟ</strong><br>
+              วางเมาส์หรือแตะบนจุดกราฟเพื่อดูเวลาและระดับน้ำ
+              เส้นประสีส้มคือระดับเฝ้าระวัง
+            </div>
+          </details>
 
         </div>
 
@@ -501,6 +551,16 @@
           <span class="satellite-badge">
             SATELLITE
           </span>
+
+          <details class="section-help section-help-panel">
+            <summary>?</summary>
+
+            <div>
+              <strong>วิธีใช้แผนที่</strong><br>
+              คลิกหมุดเพื่อดูระดับน้ำล่าสุดและพิกัดละเอียด
+              ใช้ปุ่ม + และ − เพื่อย่อ–ขยายแผนที่
+            </div>
+          </details>
 
         </div>
 
@@ -631,6 +691,16 @@
       <p class="station-dialog-note">
         สถานีที่เพิ่มจะบันทึกไว้ในเบราว์เซอร์เครื่องนี้
       </p>
+
+      <details class="station-form-help">
+        <summary>คำแนะนำการเพิ่มสถานี</summary>
+
+        <p>
+          Google Sheets ต้องมีหัวตาราง วันที่, เวลา, ระดับน้ำ (m),
+          Latitude และ Longitude และลิงก์ CSV
+          ต้องเปิดสิทธิ์ให้ผู้มีลิงก์ดูได้
+        </p>
+      </details>
 
       <div class="dialog-actions">
 
