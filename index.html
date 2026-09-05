@@ -1,6 +1,609 @@
+<!doctype html>
+<html lang="th">
+
+<head>
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <meta
+    name="description"
+    content="RMUTL Flood Monitoring System"
+  >
+
+  <title>RMUTL Flood Monitoring</title>
+
+  <link
+    rel="preconnect"
+    href="https://fonts.googleapis.com"
+  >
+
+  <link
+    rel="preconnect"
+    href="https://fonts.gstatic.com"
+    crossorigin
+  >
+
+  <link
+    href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  >
+
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  >
+
+  <link
+    rel="stylesheet"
+    href="styles.css?v=20260905-1"
+  >
+</head>
+
+<body>
+
+  <header class="site-header">
+
+    <div class="header-content">
+
+      <div class="brand-area">
+
+        <div class="brand-icon">
+          ≋
+        </div>
+
+        <div>
+          <p class="header-eyebrow">
+            RMUTL FLOOD MONITORING
+          </p>
+
+          <h1>
+            ระบบติดตามระดับน้ำ
+          </h1>
+
+          <p class="subtitle">
+            ระบบตรวจวัดและติดตามสถานการณ์ระดับน้ำแบบออนไลน์
+          </p>
+        </div>
+
+      </div>
+
+      <div class="header-right">
+
+        <div class="header-status">
+
+          <div class="header-status-item">
+            <span class="online-dot"></span>
+
+            <div>
+              <small>สถานะระบบ</small>
+              <strong>Online</strong>
+            </div>
+          </div>
+
+          <div class="header-status-item">
+            <div>
+              <small>เวลาปัจจุบัน</small>
+              <strong id="liveClock">กำลังโหลด...</strong>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="header-tools">
+
+          <div class="download-menu">
+
+            <button
+              id="downloadMenuButton"
+              class="header-tool-button download-main-button"
+              type="button"
+              aria-expanded="false"
+            >
+              <span class="download-main-icon">↓</span>
+
+              <div class="download-main-text">
+                <small>EXPORT DATA</small>
+                <strong>ดาวน์โหลดข้อมูล</strong>
+              </div>
+
+              <span class="download-chevron">▾</span>
+            </button>
+
+            <div
+              id="downloadMenu"
+              class="download-dropdown"
+            >
+
+              <div class="download-dropdown-header">
+
+                <div>
+                  <span class="download-dropdown-eyebrow">
+                    DATA EXPORT
+                  </span>
+
+                  <strong>ดาวน์โหลดข้อมูล</strong>
+
+                  <p>
+                    เลือกรูปแบบข้อมูลที่ต้องการดาวน์โหลด
+                  </p>
+                </div>
+
+                <button
+                  id="closeDownloadMenu"
+                  class="download-close"
+                  type="button"
+                  aria-label="ปิดเมนูดาวน์โหลด"
+                >
+                  ×
+                </button>
+
+                <details class="station-form-help">
+                  <summary>วิธีดาวน์โหลด</summary>
+
+                  <p>
+                    เลือกข้อมูลสถานีที่เลือก ข้อมูลรวมทุกสถานี
+                    สรุปรายวัน หรือไฟล์สำรอง JSON
+                    การดาวน์โหลดจะไม่แก้ไข Google Sheets
+                  </p>
+                </details>
+
+              </div>
+
+              <div class="download-current-info">
+
+                <div class="download-info-item">
+                  <span>วันที่ที่เลือก</span>
+                  <strong id="downloadCurrentDate">—</strong>
+                </div>
+
+                <div class="download-info-item">
+                  <span>สถานีที่เลือก</span>
+                  <strong id="downloadCurrentStation">—</strong>
+                </div>
+
+              </div>
+
+              <div class="download-section-title">
+                ข้อมูลสำหรับวิเคราะห์
+              </div>
+
+              <button
+                id="downloadSelectedCsv"
+                class="download-option"
+                type="button"
+              >
+                <div class="download-option-icon csv-icon">
+                  CSV
+                </div>
+
+                <div class="download-option-content">
+                  <strong>ข้อมูลสถานีที่เลือก</strong>
+
+                  <p>
+                    วันที่ เวลา ระดับน้ำ Latitude และ Longitude
+                  </p>
+
+                  <span>เหมาะสำหรับเปิดใน Excel</span>
+                </div>
+
+                <div class="download-option-arrow">↓</div>
+              </button>
+
+              <button
+                id="downloadAllCsv"
+                class="download-option"
+                type="button"
+              >
+                <div class="download-option-icon all-icon">
+                  ALL
+                </div>
+
+                <div class="download-option-content">
+                  <strong>ข้อมูลรวมทุกสถานี</strong>
+
+                  <p>
+                    รวมข้อมูลทุกสถานีของวันที่เลือก
+                  </p>
+
+                  <span>CSV · พร้อมนำไปวิเคราะห์</span>
+                </div>
+
+                <div class="download-option-arrow">↓</div>
+              </button>
+
+              <button
+                id="downloadSummaryCsv"
+                class="download-option"
+                type="button"
+              >
+                <div class="download-option-icon summary-download-icon">
+                  Σ
+                </div>
+
+                <div class="download-option-content">
+                  <strong>สรุปข้อมูลรายวัน</strong>
+
+                  <p>
+                    ล่าสุด เฉลี่ย ต่ำสุด สูงสุด และจำนวนข้อมูล
+                  </p>
+
+                  <span>เหมาะสำหรับจัดทำรายงาน</span>
+                </div>
+
+                <div class="download-option-arrow">↓</div>
+              </button>
+
+              <div class="download-divider"></div>
+
+              <div class="download-section-title">
+                สำรองข้อมูล
+              </div>
+
+              <button
+                id="downloadJson"
+                class="download-option"
+                type="button"
+              >
+                <div class="download-option-icon json-icon">
+                  { }
+                </div>
+
+                <div class="download-option-content">
+                  <strong>Backup JSON</strong>
+
+                  <p>
+                    สำรองข้อมูลทั้งหมดที่ Dashboard โหลดอยู่
+                  </p>
+
+                  <span>
+                    สำหรับเก็บสำรองหรือใช้กับระบบอื่น
+                  </span>
+                </div>
+
+                <div class="download-option-arrow">↓</div>
+              </button>
+
+              <div class="download-footer">
+
+                <span class="download-safe-icon">✓</span>
+
+                <div>
+                  <strong>ปลอดภัยต่อข้อมูล</strong>
+
+                  <span>
+                    การดาวน์โหลดไม่แก้ไขข้อมูลใน Google Sheets
+                  </span>
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+
+          <button
+            id="themeToggle"
+            class="theme-toggle"
+            type="button"
+          >
+            <span
+              id="themeIcon"
+              class="theme-icon"
+            >
+              ☾
+            </span>
+
+            <div>
+              <small>THEME</small>
+              <strong id="themeText">มืด</strong>
+            </div>
+          </button>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </header>
+
+  <main>
+
+    <section class="dashboard-heading">
+
+      <div>
+        <p class="section-eyebrow">
+          OVERVIEW
+        </p>
+
+        <h2>
+          ภาพรวมสถานีตรวจวัด
+        </h2>
+
+        <p>
+          ข้อมูลล่าสุดจาก Google Sheets ของแต่ละสถานี
+        </p>
+      </div>
+
+      <div
+        id="globalUpdated"
+        class="last-update"
+      >
+        กำลังโหลดข้อมูล...
+      </div>
+
+      <details class="section-help">
+        <summary>?</summary>
+
+        <div>
+          <strong>วิธีใช้ภาพรวม</strong><br>
+
+          คลิกการ์ดสถานีเพื่อเลือกดูข้อมูลระดับน้ำล่าสุด
+          ค่าต่ำสุด และค่าสูงสุด
+        </div>
+      </details>
+
+    </section>
+
+    <section
+      id="stationCards"
+      class="station-grid"
+    ></section>
+
+    <section class="filter-panel">
+
+      <div class="filter-title">
+
+        <div class="filter-icon">
+          ☰
+        </div>
+
+        <div>
+          <strong>ตัวเลือกการแสดงผล</strong>
+
+          <span>
+            เลือกสถานีและวันที่ที่ต้องการ
+          </span>
+        </div>
+
+      </div>
+
+      <div class="filter-controls">
+
+        <div class="control-item">
+
+          <label for="stationSelect">
+            สถานี
+          </label>
+
+          <select id="stationSelect"></select>
+
+        </div>
+
+        <div class="control-item">
+
+          <label for="dateInput">
+            วันที่
+          </label>
+
+          <input
+            id="dateInput"
+            type="date"
+          >
+
+        </div>
+
+        <div class="date-buttons">
+
+          <button
+            id="previousDate"
+            class="secondary-button"
+            type="button"
+          >
+            ‹ วันก่อนหน้า
+          </button>
+
+          <button
+            id="nextDate"
+            class="secondary-button"
+            type="button"
+          >
+            วันถัดไป ›
+          </button>
+
+        </div>
+
+        <button
+          id="refreshButton"
+          class="primary-button"
+          type="button"
+        >
+          ↻ รีเฟรช
+        </button>
+
+        <details class="section-help section-help-inline">
+          <summary>?</summary>
+
+          <div>
+            <strong>วิธีเลือกข้อมูล</strong><br>
+
+            เลือกสถานีและวันที่ ใช้ปุ่มวันก่อนหน้า/วันถัดไป
+            เพื่อดูข้อมูลย้อนหลัง แล้วกดรีเฟรชเมื่อต้องการโหลดข้อมูลใหม่
+          </div>
+        </details>
+
+      </div>
+
+    </section>
+
+    <section class="mode-panel">
+
+      <div>
+        <p class="section-eyebrow">
+          GRAPH VIEW
+        </p>
+
+        <strong>
+          รูปแบบการแสดงกราฟ
+        </strong>
+
+        <span>
+          ข้อมูลถูกคำนวณเป็นค่าเฉลี่ยทุก 1 ชั่วโมง
+        </span>
+      </div>
+
+      <div class="mode-switch">
+
+        <button
+          id="chartModeStation"
+          class="mode-button active"
+          type="button"
+        >
+          สถานีที่เลือก
+        </button>
+
+        <button
+          id="chartModeAll"
+          class="mode-button"
+          type="button"
+        >
+          เปรียบเทียบทุกสถานี
+        </button>
+
+      </div>
+
+      <details class="section-help section-help-inline">
+        <summary>?</summary>
+
+        <div>
+          <strong>วิธีดูกราฟ</strong><br>
+
+          เลือกสถานีที่เลือกเพื่อดูรายละเอียดจุดเดียว
+          หรือเปรียบเทียบทุกสถานีเพื่อเทียบเส้นกราฟพร้อมกัน
+        </div>
+      </details>
+
+    </section>
+
+    <section
+      id="chartSummary"
+      class="summary-grid"
+    ></section>
+
+    <section class="content-grid">
+
+      <article class="dashboard-panel">
+
+        <div class="panel-heading">
+
+          <div>
+            <p class="section-eyebrow">
+              HOURLY WATER LEVEL
+            </p>
+
+            <h2 id="chartTitle">
+              กราฟระดับน้ำ
+            </h2>
+
+            <p id="chartDateLabel">
+              กำลังโหลดข้อมูล...
+            </p>
+          </div>
+
+          <div class="unit-pill">
+
+            <span class="unit-dot"></span>
+
+            <span id="unitLabel">
+              เมตร
+            </span>
+
+          </div>
+
+          <details class="section-help section-help-panel">
+            <summary>?</summary>
+
+            <div>
+              <strong>วิธีอ่านกราฟ</strong><br>
+
+              วางเมาส์หรือแตะบนจุดกราฟเพื่อดูเวลาและระดับน้ำ
+              เส้นประสีส้มคือระดับเฝ้าระวัง
+            </div>
+          </details>
+
+        </div>
+
+        <div class="chart-container">
+
+          <canvas id="waterChart"></canvas>
+
+        </div>
+
+        <div
+          id="chartNotice"
+          class="chart-notice"
+        >
+          กำลังโหลดข้อมูล...
+        </div>
+
+      </article>
+
+      <article class="dashboard-panel">
+
+        <div class="panel-heading">
+
+          <div>
+            <p class="section-eyebrow">
+              LIVE LOCATION
+            </p>
+
+            <h2>
+              ตำแหน่งสถานี
+            </h2>
+
+            <p>
+              พิกัดล่าสุดจาก Google Sheets
+            </p>
+          </div>
+
+          <span class="satellite-badge">
+            SATELLITE
+          </span>
+
+          <details class="section-help section-help-panel">
+            <summary>?</summary>
+
+            <div>
+              <strong>วิธีใช้แผนที่</strong><br>
+
+              คลิกหมุดเพื่อดูระดับน้ำล่าสุดและพิกัดละเอียด
+              ใช้ปุ่ม + และ − เพื่อย่อ–ขยายแผนที่
+            </div>
+          </details>
+
+        </div>
+
+        <!-- Leaflet ต้องใช้ element นี้ ห้ามลบ -->
+        <div id="map"></div>
+
+        <div class="map-description">
+
+          <span class="online-dot"></span>
+
+          หมุดแสดงพิกัดล่าสุดจากแต่ละสถานี
+
+        </div>
+
+      </article>
+
+    </section>
+
   </main>
 
-  <!-- ปุ่มเพิ่มสถานี -->
   <button
     id="addStationButton"
     class="add-station-button"
@@ -9,24 +612,27 @@
     + เพิ่มสถานี
   </button>
 
-  <!-- หน้าต่างเพิ่มและแก้ไขสถานี -->
   <dialog
     id="addStationDialog"
     class="station-dialog"
   >
+
     <form
       id="addStationForm"
       method="dialog"
     >
-      <!-- เก็บ ID ขณะกำลังแก้ไข -->
+
       <input
         type="hidden"
         name="stationId"
       >
 
       <div class="station-dialog-heading">
+
         <div>
-          <span>STATION SETUP</span>
+          <span>
+            STATION SETUP
+          </span>
 
           <h2 id="stationDialogTitle">
             เพิ่มสถานีใหม่
@@ -41,6 +647,7 @@
         >
           ×
         </button>
+
       </div>
 
       <label>
@@ -64,12 +671,15 @@
       </label>
 
       <div class="dialog-grid">
+
         <label>
           Latitude
 
           <input
             name="latitude"
             type="number"
+            min="-90"
+            max="90"
             step="any"
             required
           >
@@ -81,10 +691,13 @@
           <input
             name="longitude"
             type="number"
+            min="-180"
+            max="180"
             step="any"
             required
           >
         </label>
+
       </div>
 
       <label>
@@ -99,6 +712,7 @@
       </label>
 
       <div class="dialog-grid">
+
         <label>
           ระดับเฝ้าระวัง
 
@@ -124,6 +738,7 @@
             required
           >
         </label>
+
       </div>
 
       <label>
@@ -153,6 +768,7 @@
       </details>
 
       <div class="dialog-actions">
+
         <button
           type="button"
           id="cancelStationDialog"
@@ -168,16 +784,20 @@
         >
           บันทึกสถานี
         </button>
+
       </div>
+
     </form>
+
   </dialog>
 
-  <!-- หน้าต่างยืนยันการลบ -->
   <dialog
     id="deleteStationDialog"
     class="station-dialog delete-station-dialog"
   >
+
     <form method="dialog">
+
       <div class="delete-dialog-icon">
         !
       </div>
@@ -195,6 +815,7 @@
       </div>
 
       <div class="dialog-actions">
+
         <button
           type="button"
           id="cancelDeleteStation"
@@ -210,17 +831,22 @@
         >
           ลบสถานี
         </button>
+
       </div>
+
     </form>
+
   </dialog>
 
+  <!-- ต้องโหลด Chart.js และ Leaflet ก่อน app.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-  <script src="config.js?v=20260812-41"></script>
+  <script src="config.js?v=20260905-1"></script>
 
-  <script src="app.js?v=20260812-41"></script>
+  <script src="app.js?v=20260905-1"></script>
 
 </body>
+
 </html>
