@@ -15,6 +15,9 @@ window.WATER_APP_CONFIG = {
       unit: "เมตร",
       warningLevel: 2.5,
 
+      // ระดับสูงสุดของรูปท่อ
+      maxPipeHeight: 3.16,
+
       color: "#0B84F3",
       softColor: "#E4F2FF",
     },
@@ -25,14 +28,17 @@ window.WATER_APP_CONFIG = {
       shortName: "Floodpole 1",
       deployed: true,
 
-      latitude: 18.290000,
-      longitude: 99.495000,
+      latitude: 18.29,
+      longitude: 99.495,
 
       googleSheetCsv:
         "https://docs.google.com/spreadsheets/d/1TZGZodxs95my8uxbm0w5J6fpPDmIZUAQpwRSKdxPQh4/export?format=csv&gid=615401149",
 
       unit: "เมตร",
       warningLevel: 0.8,
+
+      // ระดับสูงสุดของรูปท่อ
+      maxPipeHeight: 3.16,
 
       color: "#F97316",
       softColor: "#FFF0E3",
@@ -44,14 +50,17 @@ window.WATER_APP_CONFIG = {
       shortName: "Floodpole 2",
       deployed: true,
 
-      latitude: 18.295000,
-      longitude: 99.497000,
+      latitude: 18.295,
+      longitude: 99.497,
 
       googleSheetCsv:
         "https://docs.google.com/spreadsheets/d/1TZGZodxs95my8uxbm0w5J6fpPDmIZUAQpwRSKdxPQh4/export?format=csv&gid=1870805308",
 
       unit: "เมตร",
       warningLevel: 0.8,
+
+      // ระดับสูงสุดของรูปท่อ
+      maxPipeHeight: 3.16,
 
       color: "#8B5CF6",
       softColor: "#F2ECFF",
