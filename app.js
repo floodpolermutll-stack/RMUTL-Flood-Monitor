@@ -1,28 +1,42 @@
+const DEFAULT_PIPE_HEIGHT = 3.16;
+
+const STATIONS_STORAGE_KEY =
+  "rmutl-flood-monitor-stations-v3";
+
+const LEGACY_STORAGE_KEY =
+  "rmutl-flood-monitor-custom-stations";
+
+
+const configuredStations =
+  Array.isArray(
+    window.WATER_APP_CONFIG?.stations
+  )
+    ? window.WATER_APP_CONFIG.stations
+    : [];
+
+
 const defaultStations =
-  window.WATER_APP_CONFIG.stations.map(
+  configuredStations.map(
     station => ({
-      maxPipeHeight: 3.16,
+      unit:
+        "เมตร",
+
+      maxPipeHeight:
+        DEFAULT_PIPE_HEIGHT,
+
       ...station
     })
   );
 
 
-const CUSTOM_STATIONS_KEY =
-  "rmutl-flood-monitor-custom-stations";
-
-
-const SAVED_STATIONS_KEY =
-  "rmutl-flood-monitor-stations-v2";
-
-
-function loadSavedStations() {
+function loadStations() {
 
   try {
 
     const saved =
       JSON.parse(
         localStorage.getItem(
-          SAVED_STATIONS_KEY
+          STATIONS_STORAGE_KEY
         ) || "null"
       );
 
@@ -34,8 +48,12 @@ function loadSavedStations() {
 
       return saved.map(
         station => ({
-          maxPipeHeight: 3.16,
-          unit: "เมตร",
+          unit:
+            "เมตร",
+
+          maxPipeHeight:
+            DEFAULT_PIPE_HEIGHT,
+
           ...station
         })
       );
@@ -43,10 +61,10 @@ function loadSavedStations() {
     }
 
 
-    const legacyCustom =
+    const legacy =
       JSON.parse(
         localStorage.getItem(
-          CUSTOM_STATIONS_KEY
+          LEGACY_STORAGE_KEY
         ) || "[]"
       );
 
@@ -60,13 +78,17 @@ function loadSavedStations() {
       ),
 
       ...(
-        Array.isArray(legacyCustom)
-          ? legacyCustom
+        Array.isArray(legacy)
+          ? legacy
           : []
       ).map(
         station => ({
-          maxPipeHeight: 3.16,
-          unit: "เมตร",
+          unit:
+            "เมตร",
+
+          maxPipeHeight:
+            DEFAULT_PIPE_HEIGHT,
+
           ...station
         })
       )
@@ -95,7 +117,38 @@ function loadSavedStations() {
 
 
 const stations =
-  loadSavedStations();
+  loadStations();
+
+
+const state = {
+
+  selectedStationId:
+    stations[0]?.id || "",
+
+  selectedDate:
+    "",
+
+  chartMode:
+    "station",
+
+  data:
+    {},
+
+  chart:
+    null,
+
+  map:
+    null,
+
+  markers:
+    []
+
+};
+
+
+const $ =
+  selector =>
+    document.querySelector(selector);
 
 
 function saveStations() {
@@ -103,7 +156,7 @@ function saveStations() {
   try {
 
     localStorage.setItem(
-      SAVED_STATIONS_KEY,
+      STATIONS_STORAGE_KEY,
       JSON.stringify(stations)
     );
 
@@ -155,76 +208,64 @@ function escapeHtml(value) {
 }
 
 
-const state = {
-
-  selectedStationId:
-    stations[0]?.id || "",
-
-  selectedDate:
-    "",
-
-  chartMode:
-    "station",
-
-  data:
-    {},
-
-  chart:
-    null,
-
-  map:
-    null,
-
-  markers:
-    []
-
-};
-
-
-const $ =
-  selector =>
-    document.querySelector(selector);
-
-
-// ============================================================
-// COLOR
-// ============================================================
-
 function hexToRgba(
   hex,
   opacity
 ) {
 
-  const color =
+  let value =
     String(
       hex || "#000000"
-    ).replace(
-      "#",
-      ""
-    );
+    )
+      .replace(
+        "#",
+        ""
+      )
+      .trim();
+
+
+  if (
+    value.length === 3
+  ) {
+
+    value =
+      value
+        .split("")
+        .map(
+          character =>
+            character + character
+        )
+        .join("");
+
+  }
 
 
   const number =
     parseInt(
-      color,
+      value,
       16
     );
 
 
-  const r =
-    (number >> 16) & 255;
+  if (
+    Number.isNaN(number)
+  ) {
 
+    return (
+      `rgba(0,0,0,${opacity})`
+    );
 
-  const g =
-    (number >> 8) & 255;
-
-
-  const b =
-    number & 255;
+  }
 
 
   return (
-    `rgba(${r},${g},${b},${opacity})`
+    `rgba(${
+      (number >> 16) & 255
+    },${
+      (number >> 8) & 255
+    },${
+      number & 255
+    },${opacity})`
   );
 
 }
@@ -266,20 +307,16 @@ function formatDate(
     return new Intl.DateTimeFormat(
       "th-TH",
       {
-
         ...(options || {
-
           dateStyle:
             "medium",
 
           timeStyle:
             "short"
-
         }),
 
         timeZone:
           "Asia/Bangkok"
-
       }
     ).format(date);
 
@@ -296,13 +333,6 @@ function formatDate(
 
 function dateKey(value) {
 
-  if (!value) {
-
-    return "";
-
-  }
-
-
   const date =
     new Date(value);
 
@@ -318,74 +348,53 @@ function dateKey(value) {
   }
 
 
-  try {
+  const parts =
+    new Intl.DateTimeFormat(
+      "en-CA",
+      {
+        timeZone:
+          "Asia/Bangkok",
 
-    const parts =
-      new Intl.DateTimeFormat(
-        "en-CA",
-        {
+        year:
+          "numeric",
 
-          timeZone:
-            "Asia/Bangkok",
+        month:
+          "2-digit",
 
-          year:
-            "numeric",
-
-          month:
-            "2-digit",
-
-          day:
-            "2-digit"
-
-        }
-      ).formatToParts(
-        date
-      );
+        day:
+          "2-digit"
+      }
+    ).formatToParts(date);
 
 
-    const year =
-      parts.find(
-        part =>
-          part.type === "year"
-      )?.value;
+  const year =
+    parts.find(
+      part =>
+        part.type === "year"
+    )?.value;
 
 
-    const month =
-      parts.find(
-        part =>
-          part.type === "month"
-      )?.value;
+  const month =
+    parts.find(
+      part =>
+        part.type === "month"
+    )?.value;
 
 
-    const day =
-      parts.find(
-        part =>
-          part.type === "day"
-      )?.value;
+  const day =
+    parts.find(
+      part =>
+        part.type === "day"
+    )?.value;
 
 
-    if (
-      !year ||
-      !month ||
-      !day
-    ) {
-
-      return "";
-
-    }
-
-
-    return (
-      `${year}-${month}-${day}`
-    );
-
-  }
-
-  catch {
-
-    return "";
-
-  }
+  return (
+    year &&
+    month &&
+    day
+  )
+    ? `${year}-${month}-${day}`
+    : "";
 
 }
 
@@ -407,50 +416,38 @@ function getThaiHour(value) {
   }
 
 
-  try {
+  const hour =
+    new Intl.DateTimeFormat(
+      "en-US",
+      {
+        timeZone:
+          "Asia/Bangkok",
 
-    const hour =
-      new Intl.DateTimeFormat(
-        "en-US",
-        {
+        hour:
+          "2-digit",
 
-          timeZone:
-            "Asia/Bangkok",
-
-          hour:
-            "2-digit",
-
-          hour12:
-            false
-
-        }
-      ).format(date);
+        hour12:
+          false
+      }
+    ).format(date);
 
 
-    const number =
-      Number(
-        hour === "24"
-          ? "0"
-          : hour
-      );
+  const number =
+    Number(
+      hour === "24"
+        ? "0"
+        : hour
+    );
 
 
-    return Number.isInteger(number)
-      ? number
-      : null;
-
-  }
-
-  catch {
-
-    return null;
-
-  }
+  return Number.isInteger(number)
+    ? number
+    : null;
 
 }
 
 
-function normalizeTimeText(value) {
+function normalizeTime(value) {
 
   const text =
     String(
@@ -479,51 +476,24 @@ function normalizeTimeText(value) {
 
 
   return (
-    String(
-      match[1]
-    ).padStart(
-      2,
-      "0"
-    )
-
-    +
-
-    ":"
-
-    +
-
-    String(
-      match[2]
-    ).padStart(
-      2,
-      "0"
-    )
-
-    +
-
-    ":"
-
-    +
-
-    String(
-      match[3] || "00"
-    ).padStart(
-      2,
-      "0"
-    )
+    String(match[1]).padStart(2, "0") +
+    ":" +
+    String(match[2]).padStart(2, "0") +
+    ":" +
+    String(match[3] || "00").padStart(2, "0")
   );
 
 }
 
 
-function buildThaiTimestamp(
-  dateText,
-  timeText
+function buildTimestamp(
+  dateValue,
+  timeValue
 ) {
 
-  let date =
+  let dateText =
     String(
-      dateText || ""
+      dateValue || ""
     )
 
       .replace(
@@ -534,9 +504,9 @@ function buildThaiTimestamp(
       .trim();
 
 
-  let time =
+  let timeText =
     String(
-      timeText || ""
+      timeValue || ""
     )
 
       .replace(
@@ -547,7 +517,7 @@ function buildThaiTimestamp(
       .trim();
 
 
-  if (!date) {
+  if (!dateText) {
 
     return null;
 
@@ -555,33 +525,36 @@ function buildThaiTimestamp(
 
 
   const combined =
-    date.match(
+    dateText.match(
       /^(\d{1,2}\/\d{1,2}\/\d{4})\s*,\s*(\d{1,2}:\d{2}(?::\d{2})?)$/
     );
 
 
   if (combined) {
 
-    date =
+    dateText =
       combined[1];
 
 
-    time =
+    timeText =
       combined[2];
 
   }
 
 
-  time =
-    normalizeTimeText(
-      time
+  timeText =
+    normalizeTime(
+      timeText
     );
 
 
   let match =
-    date.match(
+    dateText.match(
       /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/
     );
+
+
+  let timestamp;
 
 
   if (match) {
@@ -604,35 +577,24 @@ function buildThaiTimestamp(
       );
 
 
-    const year =
-      match[3];
-
-
-    const timestamp =
-      `${year}-${month}-${day}T${time}+07:00`;
-
-
-    return Number.isNaN(
-      new Date(
-        timestamp
-      ).getTime()
-    )
-      ? null
-      : timestamp;
+    timestamp =
+      `${match[3]}-${month}-${day}T${timeText}+07:00`;
 
   }
 
+  else {
 
-  match =
-    date.match(
-      /^(\d{4})-(\d{1,2})-(\d{1,2})$/
-    );
+    match =
+      dateText.match(
+        /^(\d{4})-(\d{1,2})-(\d{1,2})$/
+      );
 
 
-  if (match) {
+    if (!match) {
 
-    const year =
-      match[1];
+      return null;
+
+    }
 
 
     const month =
@@ -653,24 +615,23 @@ function buildThaiTimestamp(
       );
 
 
-    const timestamp =
-      `${year}-${month}-${day}T${time}+07:00`;
-
-
-    return Number.isNaN(
-      new Date(
-        timestamp
-      ).getTime()
-    )
-      ? null
-      : timestamp;
+    timestamp =
+      `${match[1]}-${month}-${day}T${timeText}+07:00`;
 
   }
 
 
-  return null;
+  return Number.isNaN(
+    new Date(
+      timestamp
+    ).getTime()
+  )
+    ? null
+    : timestamp;
 
 }
+
+
 // ============================================================
 // CSV
 // ============================================================
@@ -685,47 +646,49 @@ function splitCsvLine(line) {
     "";
 
 
-  let insideQuotes =
+  let quoted =
     false;
 
 
   for (
-    let i = 0;
-    i < line.length;
-    i++
+    let index = 0;
+    index < line.length;
+    index++
   ) {
 
-    const char =
-      line[i];
+    const character =
+      line[index];
 
 
     if (
-      char === '"'
+      character === '"'
     ) {
 
       if (
-        insideQuotes &&
-        line[i + 1] === '"'
+        quoted &&
+        line[index + 1] === '"'
       ) {
 
-        current += '"';
+        current +=
+          '"';
 
-        i++;
+
+        index++;
 
       }
 
       else {
 
-        insideQuotes =
-          !insideQuotes;
+        quoted =
+          !quoted;
 
       }
 
     }
 
     else if (
-      char === "," &&
-      !insideQuotes
+      character === "," &&
+      !quoted
     ) {
 
       cells.push(
@@ -741,7 +704,7 @@ function splitCsvLine(line) {
     else {
 
       current +=
-        char;
+        character;
 
     }
 
@@ -788,7 +751,7 @@ function normalizeHeader(value) {
 
 function parseNumberCell(value) {
 
-  let raw =
+  const text =
     String(
       value ?? ""
     )
@@ -803,13 +766,18 @@ function parseNumberCell(value) {
         ""
       )
 
+      .replace(
+        ",",
+        "."
+      )
+
       .trim();
 
 
   if (
-    raw === "" ||
-    raw === "—" ||
-    raw === "-"
+    !text ||
+    text === "-" ||
+    text === "—"
   ) {
 
     return null;
@@ -817,18 +785,8 @@ function parseNumberCell(value) {
   }
 
 
-  /*
-   * รองรับค่าทศนิยมที่ใช้เครื่องหมาย comma
-   */
-  raw =
-    raw.replace(
-      ",",
-      "."
-    );
-
-
   const number =
-    Number(raw);
+    Number(text);
 
 
   return Number.isFinite(number)
@@ -859,7 +817,7 @@ function parseCsv(csvText) {
 
       .filter(
         line =>
-          line.trim() !== ""
+          line.trim()
       )
 
       .map(
@@ -867,80 +825,44 @@ function parseCsv(csvText) {
       );
 
 
-  let headerRowIndex =
-    -1;
+  const headerRowIndex =
+    rows.findIndex(
+      row => {
+
+        const headers =
+          row.map(
+            normalizeHeader
+          );
 
 
-  /*
-   * ค้นหาแถวหัวตาราง
-   */
-  for (
-    let i = 0;
-    i < rows.length;
-    i++
-  ) {
-
-    const headers =
-      rows[i].map(
-        normalizeHeader
-      );
+        const text =
+          headers.join(
+            " "
+          );
 
 
-    const text =
-      headers.join(
-        " "
-      );
+        return (
+          (
+            text.includes("วันที่") ||
+            text.includes("date")
+          ) &&
+          (
+            text.includes("latitude") ||
+            headers.includes("lat")
+          ) &&
+          (
+            text.includes("longitude") ||
+            headers.includes("lng") ||
+            headers.includes("lon")
+          )
+        );
 
-
-    const hasDate =
-      text.includes(
-        "วันที่"
-      ) ||
-      text.includes(
-        "date"
-      );
-
-
-    const hasLatitude =
-      text.includes(
-        "latitude"
-      ) ||
-      headers.includes(
-        "lat"
-      );
-
-
-    const hasLongitude =
-      text.includes(
-        "longitude"
-      ) ||
-      headers.includes(
-        "lng"
-      ) ||
-      headers.includes(
-        "lon"
-      );
-
-
-    if (
-      hasDate &&
-      hasLatitude &&
-      hasLongitude
-    ) {
-
-      headerRowIndex =
-        i;
-
-
-      break;
-
-    }
-
-  }
+      }
+    );
 
 
   if (
-    headerRowIndex === -1
+    headerRowIndex < 0
   ) {
 
     console.error(
@@ -961,195 +883,137 @@ function parseCsv(csvText) {
     );
 
 
-  let dateIndex =
-    headers.findIndex(
-      header =>
-        header.includes(
-          "วันที่"
-        ) ||
-        header === "date"
-    );
-
-
-  let timeIndex =
-    headers.findIndex(
-      header =>
-        header.includes(
-          "เวลา"
-        ) ||
-        header === "time"
-    );
-
-
-  let distanceIndex =
-    headers.findIndex(
-      header =>
-        header.includes(
-          "ระดับน้ำ"
-        ) ||
-        header.includes(
-          "ระยะน้ำ"
-        ) ||
-        header.includes(
-          "ระยะทาง"
-        ) ||
-        header.includes(
-          "distance"
-        ) ||
-        header.includes(
-          "water level"
-        ) ||
-        header.includes(
-          "water_level"
-        ) ||
-        header === "level"
-    );
-
-
-  let latitudeIndex =
-    headers.findIndex(
-      header =>
-        header.includes(
-          "latitude"
-        ) ||
-        header === "lat"
-    );
-
-
-  let longitudeIndex =
-    headers.findIndex(
-      header =>
-        header.includes(
-          "longitude"
-        ) ||
-        header === "lng" ||
-        header === "lon"
-    );
-
-
-  /*
-   * ใช้ลำดับคอลัมน์มาตรฐาน
-   * หากไม่พบชื่อหัวตาราง
-   */
-  if (
-    dateIndex === -1
+  function findColumn(
+    tests,
+    fallback
   ) {
 
-    dateIndex = 0;
+    const index =
+      headers.findIndex(
+        header =>
+          tests.some(
+            test =>
+              typeof test === "string"
+                ? header === test
+                : test.test(header)
+          )
+      );
+
+
+    return index >= 0
+      ? index
+      : fallback;
 
   }
 
 
-  if (
-    timeIndex === -1
-  ) {
-
-    timeIndex = 1;
-
-  }
-
-
-  if (
-    distanceIndex === -1
-  ) {
-
-    distanceIndex = 2;
-
-  }
+  const dateIndex =
+    findColumn(
+      [
+        /วันที่/,
+        "date"
+      ],
+      0
+    );
 
 
-  if (
-    latitudeIndex === -1
-  ) {
+  const timeIndex =
+    findColumn(
+      [
+        /เวลา/,
+        "time"
+      ],
+      1
+    );
 
-    latitudeIndex = 3;
 
-  }
+  const levelIndex =
+    findColumn(
+      [
+        /ระดับน้ำ/,
+        /ระยะน้ำ/,
+        /ระยะทาง/,
+        /distance/,
+        /water level/,
+        /water_level/,
+        "level"
+      ],
+      2
+    );
 
 
-  if (
-    longitudeIndex === -1
-  ) {
+  const latitudeIndex =
+    findColumn(
+      [
+        /latitude/,
+        "lat"
+      ],
+      3
+    );
 
-    longitudeIndex = 4;
 
-  }
+  const longitudeIndex =
+    findColumn(
+      [
+        /longitude/,
+        "lng",
+        "lon"
+      ],
+      4
+    );
 
 
   const results =
     [];
 
 
-  /*
-   * อ่านข้อมูลทีละแถว
-   */
   for (
-    let i =
+    let index =
       headerRowIndex + 1;
 
-    i < rows.length;
+    index < rows.length;
 
-    i++
+    index++
   ) {
 
     const row =
-      rows[i];
+      rows[index];
 
 
     let dateText =
-      String(
-        row[
-          dateIndex
-        ] || ""
-      )
-
-        .replace(
-          /"/g,
-          ""
-        )
-
-        .trim();
-
-
-    let timeText =
-      String(
-        row[
-          timeIndex
-        ] || ""
-      )
-
-        .replace(
-          /"/g,
-          ""
-        )
-
-        .trim();
-
-
-    let distanceRaw =
       row[
-        distanceIndex
+        dateIndex
       ];
 
 
-    let latitudeRaw =
+    let timeText =
+      row[
+        timeIndex
+      ];
+
+
+    let levelValue =
+      row[
+        levelIndex
+      ];
+
+
+    let latitudeValue =
       row[
         latitudeIndex
       ];
 
 
-    let longitudeRaw =
+    let longitudeValue =
       row[
         longitudeIndex
       ];
 
 
-    /*
-     * รองรับข้อมูลรูปแบบเก่า
-     * ที่วันที่และเวลาอยู่ในเซลล์เดียวกัน
-     */
     const oldFormat =
-      dateText.match(
+      String(
+        dateText || ""
+      ).match(
         /^(\d{1,2}\/\d{1,2}\/\d{4})\s*,\s*(\d{1,2}:\d{2}(?::\d{2})?)$/
       );
 
@@ -1164,30 +1028,27 @@ function parseCsv(csvText) {
         oldFormat[2];
 
 
-      distanceRaw =
+      levelValue =
         row[1];
 
 
-      latitudeRaw =
+      latitudeValue =
         row[2];
 
 
-      longitudeRaw =
+      longitudeValue =
         row[3];
 
     }
 
 
     const timestamp =
-      buildThaiTimestamp(
+      buildTimestamp(
         dateText,
         timeText
       );
 
 
-    /*
-     * ข้ามแถวที่ไม่มีวันเวลาถูกต้อง
-     */
     if (!timestamp) {
 
       continue;
@@ -1201,17 +1062,17 @@ function parseCsv(csvText) {
 
       level:
         parseNumberCell(
-          distanceRaw
+          levelValue
         ),
 
       latitude:
         parseNumberCell(
-          latitudeRaw
+          latitudeValue
         ),
 
       longitude:
         parseNumberCell(
-          longitudeRaw
+          longitudeValue
         )
 
     });
@@ -1219,17 +1080,14 @@ function parseCsv(csvText) {
   }
 
 
-  /*
-   * เรียงข้อมูลจากเก่าไปใหม่
-   */
   results.sort(
-    (a, b) =>
+    (first, second) =>
       new Date(
-        a.timestamp
+        first.timestamp
       )
       -
       new Date(
-        b.timestamp
+        second.timestamp
       )
   );
 
@@ -1237,18 +1095,16 @@ function parseCsv(csvText) {
   return results;
 
 }
+
+
 // ============================================================
-// LOAD STATION DATA
+// LOAD AND DATA
 // ============================================================
 
 async function loadStation(station) {
 
-  /*
-   * ไม่โหลดข้อมูลหากสถานียังไม่ติดตั้ง
-   * หรือไม่มีลิงก์ Google Sheets
-   */
   if (
-    !station.deployed ||
+    !station?.deployed ||
     !station.googleSheetCsv
   ) {
 
@@ -1260,26 +1116,17 @@ async function loadStation(station) {
   try {
 
     const separator =
-      station.googleSheetCsv.includes(
-        "?"
-      )
+      station.googleSheetCsv.includes("?")
         ? "&"
         : "?";
 
 
-    /*
-     * เพิ่ม timestamp ป้องกัน browser cache
-     */
-    const url =
-      station.googleSheetCsv +
-      separator +
-      "_=" +
-      Date.now();
-
-
     const response =
       await fetch(
-        url,
+        station.googleSheetCsv +
+        separator +
+        "_=" +
+        Date.now(),
         {
           cache:
             "no-store"
@@ -1296,12 +1143,8 @@ async function loadStation(station) {
     }
 
 
-    const csvText =
-      await response.text();
-
-
     return parseCsv(
-      csvText
+      await response.text()
     );
 
   }
@@ -1309,7 +1152,7 @@ async function loadStation(station) {
   catch (error) {
 
     console.error(
-      `โหลดข้อมูลสถานี ${station.id} ไม่สำเร็จ`,
+      `โหลดสถานี ${station.name} ไม่สำเร็จ`,
       error
     );
 
@@ -1321,15 +1164,11 @@ async function loadStation(station) {
 }
 
 
-// ============================================================
-// DATA
-// ============================================================
-
 function latestReading(station) {
 
   const readings =
     state.data[
-      station.id
+      station?.id
     ] || [];
 
 
@@ -1346,14 +1185,10 @@ function latestLevelReading(station) {
 
   const readings =
     state.data[
-      station.id
+      station?.id
     ] || [];
 
 
-  /*
-   * วนจากข้อมูลใหม่ที่สุดไปหาเก่าที่สุด
-   * เพื่อหารายการล่าสุดที่มีค่าระดับน้ำ
-   */
   for (
     let index =
       readings.length - 1;
@@ -1386,7 +1221,7 @@ function getRange(station) {
   const values =
     (
       state.data[
-        station.id
+        station?.id
       ] || []
     )
 
@@ -1400,45 +1235,33 @@ function getRange(station) {
       );
 
 
-  if (!values.length) {
+  return values.length
+    ? {
+        min:
+          Math.min(
+            ...values
+          ),
 
-    return null;
-
-  }
-
-
-  return {
-
-    min:
-      Math.min(
-        ...values
-      ),
-
-    max:
-      Math.max(
-        ...values
-      )
-
-  };
+        max:
+          Math.max(
+            ...values
+          )
+      }
+    : null;
 
 }
 
 
 function getStatus(station) {
 
-  /*
-   * สถานียังไม่ติดตั้ง
-   */
-  if (!station.deployed) {
+  if (!station?.deployed) {
 
     return {
-
       className:
         "pending",
 
       text:
         "รอติดตั้ง"
-
     };
 
   }
@@ -1450,27 +1273,19 @@ function getStatus(station) {
     );
 
 
-  /*
-   * สถานีไม่มีข้อมูลระดับน้ำ
-   */
   if (!reading) {
 
     return {
-
       className:
         "offline",
 
       text:
         "ไม่มีข้อมูล"
-
     };
 
   }
 
 
-  /*
-   * ระดับน้ำถึงหรือสูงกว่าระดับเฝ้าระวัง
-   */
   if (
     Number.isFinite(
       Number(
@@ -1484,32 +1299,122 @@ function getStatus(station) {
   ) {
 
     return {
-
       className:
         "warning",
 
       text:
         "เฝ้าระวัง"
-
     };
 
   }
 
 
   return {
-
     className:
       "normal",
 
     text:
       "ปกติ"
-
   };
 
 }
+
+
 // ============================================================
-// CARDS
+// PIPE AND STATION CARDS
 // ============================================================
+
+function renderPipeGauge(
+  station,
+  reading
+) {
+
+  const configuredMaximum =
+    Number(
+      station.maxPipeHeight
+    );
+
+
+  const maximum =
+    Number.isFinite(
+      configuredMaximum
+    ) &&
+    configuredMaximum > 0
+      ? configuredMaximum
+      : DEFAULT_PIPE_HEIGHT;
+
+
+  const currentLevel =
+    reading &&
+    Number.isFinite(
+      reading.level
+    )
+      ? reading.level
+      : null;
+
+
+  const percentage =
+    currentLevel === null
+      ? 0
+      : Math.max(
+          0,
+          Math.min(
+            100,
+            (
+              currentLevel /
+              maximum
+            ) * 100
+          )
+        );
+
+
+  return `
+
+    <div class="pipe-gauge">
+
+      <div class="pipe-visual">
+
+        <div class="pipe-shell">
+
+          <span
+            class="pipe-water"
+            style="height:${percentage}%"
+          ></span>
+
+        </div>
+
+        <div class="pipe-scale">
+          <span>${maximum.toFixed(3)}</span>
+          <span>${(maximum / 2).toFixed(3)}</span>
+          <span>0</span>
+        </div>
+
+      </div>
+
+      <label class="pipe-max-label">
+
+        ระดับสูงสุดท่อ
+
+        <span>
+          <input
+            type="number"
+            min="0.001"
+            step="0.001"
+            value="${maximum.toFixed(3)}"
+            data-pipe-max="${escapeHtml(station.id)}"
+          >
+
+          ${escapeHtml(station.unit || "เมตร")}
+        </span>
+
+      </label>
+
+    </div>
+
+  `;
+
+}
+
 
 function renderCards() {
 
@@ -1561,46 +1466,24 @@ function renderCards() {
           );
 
 
-        const stationId =
+        const id =
           escapeHtml(
             station.id
-          );
-
-
-        const stationName =
-          escapeHtml(
-            station.name
-          );
-
-
-        const stationUnit =
-          escapeHtml(
-            station.unit || "เมตร"
           );
 
 
         return `
 
           <article
-
-            class="
-              station-card
-              ${
-                station.id ===
-                state.selectedStationId
-                  ? "selected"
-                  : ""
-              }
-            "
-
-            data-station-id="${stationId}"
-
+            class="station-card ${
+              station.id ===
+              state.selectedStationId
+                ? "selected"
+                : ""
+            }"
+            data-station-id="${id}"
             tabindex="0"
-
             role="button"
-
-            aria-label="เลือกสถานี ${stationName}"
-
             style="
               --station-color:${station.color};
               --station-soft:${station.softColor};
@@ -1609,83 +1492,58 @@ function renderCards() {
 
             <div class="station-card-top">
 
-              <div
-                class="
-                  station-status
-                  ${status.className}
-                "
-              >
-
+              <div class="station-status ${status.className}">
                 <span></span>
-
                 ${status.text}
-
               </div>
-
 
               <div class="station-card-actions">
 
                 <button
                   class="station-menu-button"
                   type="button"
-                  data-station-menu="${stationId}"
-                  aria-label="จัดการ ${stationName}"
+                  data-station-menu="${id}"
                   aria-expanded="false"
                 >
                   ⋮
                 </button>
 
-
                 <div
                   class="station-action-menu"
-                  data-station-menu-panel="${stationId}"
+                  data-station-menu-panel="${id}"
                 >
-
                   <button
                     type="button"
-                    data-edit-station="${stationId}"
+                    data-edit-station="${id}"
                   >
                     ✎ แก้ไขสถานี
                   </button>
 
-
                   <button
                     type="button"
                     class="danger"
-                    data-delete-station="${stationId}"
-
+                    data-delete-station="${id}"
                     ${
                       stations.length === 1
-                        ? `
-                          disabled
-                          title="ต้องมีอย่างน้อย 1 สถานี"
-                        `
+                        ? "disabled"
                         : ""
                     }
                   >
                     ⌫ ลบสถานี
                   </button>
-
                 </div>
 
-
                 <div class="station-number">
-
                   ${index + 1}
-
                 </div>
 
               </div>
 
             </div>
 
-
             <div class="station-name">
-
-              ${stationName}
-
+              ${escapeHtml(station.name)}
             </div>
-
 
             <div class="station-reading-layout">
 
@@ -1700,60 +1558,40 @@ function renderCards() {
                   }
 
                   <small>
-                    ${stationUnit}
+                    ${escapeHtml(station.unit || "เมตร")}
                   </small>
 
                 </div>
 
-
                 <div class="station-label">
-
                   ระดับน้ำล่าสุด
-
                 </div>
-
 
                 <div class="station-stat-row">
 
                   <div>
-
-                    <span>
-                      ต่ำสุดทั้งหมด
-                    </span>
-
+                    <span>ต่ำสุดทั้งหมด</span>
                     <strong>
-
                       ${
                         range
                           ? range.min.toFixed(3)
                           : "—"
                       }
-
                     </strong>
-
                   </div>
 
-
                   <div>
-
-                    <span>
-                      สูงสุดทั้งหมด
-                    </span>
-
+                    <span>สูงสุดทั้งหมด</span>
                     <strong>
-
                       ${
                         range
                           ? range.max.toFixed(3)
                           : "—"
                       }
-
                     </strong>
-
                   </div>
 
                 </div>
-
 
                 <div class="station-update">
 
@@ -1769,7 +1607,6 @@ function renderCards() {
                 </div>
 
               </div>
-
 
               ${
                 renderPipeGauge(
@@ -1788,9 +1625,6 @@ function renderCards() {
     ).join("");
 
 
-  /*
-   * เลือกสถานีโดยกดที่การ์ด
-   */
   document
     .querySelectorAll(
       "[data-station-id]"
@@ -1816,13 +1650,9 @@ function renderCards() {
             }
 
 
-            /*
-             * ไม่เปลี่ยนสถานีเมื่อกดเมนู
-             * หรือกรอกค่าความสูงท่อ
-             */
             if (
               event.target.closest(
-                "button, input"
+                "button,input"
               )
             ) {
 
@@ -1831,13 +1661,7 @@ function renderCards() {
             }
 
 
-            if (
-              event.type === "keydown"
-            ) {
-
-              event.preventDefault();
-
-            }
+            event.preventDefault();
 
 
             state.selectedStationId =
@@ -1874,170 +1698,42 @@ function renderCards() {
     );
 
 
-  setupStationCardActions();
+  setupCardActions();
 
 }
 
 
-// ============================================================
-// PIPE GAUGE
-// ============================================================
+function closeStationMenus() {
 
-function renderPipeGauge(
-  station,
-  reading
-) {
-
-  const configuredMaximum =
-    Number(
-      station.maxPipeHeight
-    );
-
-
-  const maximum =
-    Number.isFinite(
-      configuredMaximum
-    ) &&
-    configuredMaximum > 0
-      ? configuredMaximum
-      : 3.16;
-
-
-  const currentLevel =
-    reading &&
-    Number.isFinite(
-      reading.level
+  document
+    .querySelectorAll(
+      ".station-action-menu.show"
     )
-      ? reading.level
-      : null;
-
-
-  /*
-   * ระดับน้ำในรูปท่อเป็นเปอร์เซ็นต์
-   * จำกัดไว้ระหว่าง 0–100
-   */
-  const percentage =
-    currentLevel === null
-      ? 0
-      : Math.max(
-          0,
-          Math.min(
-            100,
-            (
-              currentLevel /
-              maximum
-            ) * 100
-          )
-        );
-
-
-  const middleScale =
-    maximum / 2;
-
-
-  const stationId =
-    escapeHtml(
-      station.id
+    .forEach(
+      menu =>
+        menu.classList.remove(
+          "show"
+        )
     );
 
 
-  const stationName =
-    escapeHtml(
-      station.name
+  document
+    .querySelectorAll(
+      "[data-station-menu]"
+    )
+    .forEach(
+      button =>
+        button.setAttribute(
+          "aria-expanded",
+          "false"
+        )
     );
-
-
-  const stationUnit =
-    escapeHtml(
-      station.unit || "เมตร"
-    );
-
-
-  const levelText =
-    currentLevel === null
-      ? "ไม่มีข้อมูล"
-      : currentLevel.toFixed(3);
-
-
-  return `
-
-    <div
-      class="pipe-gauge"
-      aria-label="
-        ระดับน้ำ ${levelText}
-        จาก ${maximum.toFixed(3)}
-        ${stationUnit}
-      "
-    >
-
-      <div class="pipe-visual">
-
-        <div class="pipe-shell">
-
-          <span
-            class="pipe-water"
-            style="height:${percentage}%"
-          ></span>
-
-        </div>
-
-
-        <div class="pipe-scale">
-
-          <span>
-            ${maximum.toFixed(3)}
-          </span>
-
-          <span>
-            ${middleScale.toFixed(3)}
-          </span>
-
-          <span>
-            0
-          </span>
-
-        </div>
-
-      </div>
-
-
-      <label class="pipe-max-label">
-
-        ระดับสูงสุดท่อ
-
-        <span>
-
-          <input
-            type="number"
-            min="0.001"
-            step="0.001"
-            value="${maximum.toFixed(3)}"
-            data-pipe-max="${stationId}"
-            aria-label="ระดับสูงสุดท่อ ${stationName}"
-          >
-
-          ${stationUnit}
-
-        </span>
-
-      </label>
-
-    </div>
-
-  `;
 
 }
 
 
-// ============================================================
-// STATION CARD ACTIONS
-// ============================================================
+function setupCardActions() {
 
-function setupStationCardActions() {
-
-  /*
-   * เปิดเมนูสามจุด
-   */
   document
     .querySelectorAll(
       "[data-station-menu]"
@@ -2052,62 +1748,30 @@ function setupStationCardActions() {
             event.stopPropagation();
 
 
-            const stationId =
-              button.dataset.stationMenu;
-
-
             const panel =
               document.querySelector(
-                `[data-station-menu-panel="${stationId}"]`
+                `[data-station-menu-panel="${button.dataset.stationMenu}"]`
               );
 
 
-            const willOpen =
+            const open =
               !panel?.classList.contains(
                 "show"
               );
 
 
-            document
-              .querySelectorAll(
-                ".station-action-menu.show"
-              )
-              .forEach(
-                menu => {
-
-                  menu.classList.remove(
-                    "show"
-                  );
-
-                }
-              );
-
-
-            document
-              .querySelectorAll(
-                "[data-station-menu]"
-              )
-              .forEach(
-                item => {
-
-                  item.setAttribute(
-                    "aria-expanded",
-                    "false"
-                  );
-
-                }
-              );
+            closeStationMenus();
 
 
             panel?.classList.toggle(
               "show",
-              willOpen
+              open
             );
 
 
             button.setAttribute(
               "aria-expanded",
-              String(willOpen)
+              String(open)
             );
 
           }
@@ -2117,16 +1781,12 @@ function setupStationCardActions() {
     );
 
 
-  /*
-   * แก้ไขสถานี
-   */
   document
     .querySelectorAll(
       "[data-edit-station]"
     )
     .forEach(
-      button => {
-
+      button =>
         button.addEventListener(
           "click",
           event => {
@@ -2139,22 +1799,16 @@ function setupStationCardActions() {
             );
 
           }
-        );
-
-      }
+        )
     );
 
 
-  /*
-   * ลบสถานี
-   */
   document
     .querySelectorAll(
       "[data-delete-station]"
     )
     .forEach(
-      button => {
-
+      button =>
         button.addEventListener(
           "click",
           event => {
@@ -2162,29 +1816,19 @@ function setupStationCardActions() {
             event.stopPropagation();
 
 
-            if (
-              button.disabled
-            ) {
+            if (!button.disabled) {
 
-              return;
+              openDeleteDialog(
+                button.dataset.deleteStation
+              );
 
             }
 
-
-            openDeleteStationDialog(
-              button.dataset.deleteStation
-            );
-
           }
-        );
-
-      }
+        )
     );
 
 
-  /*
-   * เปลี่ยนระดับสูงสุดของท่อ
-   */
   document
     .querySelectorAll(
       "[data-pipe-max]"
@@ -2194,21 +1838,15 @@ function setupStationCardActions() {
 
         input.addEventListener(
           "click",
-          event => {
-
-            event.stopPropagation();
-
-          }
+          event =>
+            event.stopPropagation()
         );
 
 
         input.addEventListener(
           "keydown",
-          event => {
-
-            event.stopPropagation();
-
-          }
+          event =>
+            event.stopPropagation()
         );
 
 
@@ -2239,7 +1877,7 @@ function setupStationCardActions() {
               input.value =
                 Number(
                   station?.maxPipeHeight ||
-                  3.16
+                  DEFAULT_PIPE_HEIGHT
                 ).toFixed(3);
 
 
@@ -2264,8 +1902,10 @@ function setupStationCardActions() {
     );
 
 }
+
+
 // ============================================================
-// STATION SELECT
+// SELECT, DATE AND SUMMARY
 // ============================================================
 
 function renderStationSelect() {
@@ -2281,73 +1921,20 @@ function renderStationSelect() {
   }
 
 
-  if (!stations.length) {
-
-    select.innerHTML =
-      `<option value="">ไม่มีสถานี</option>`;
-
-
-    select.value =
-      "";
-
-
-    select.disabled =
-      true;
-
-
-    return;
-
-  }
-
-
   select.disabled =
-    false;
+    !stations.length;
 
 
   select.innerHTML =
-    stations.map(
-      station => {
-
-        const stationId =
-          escapeHtml(
-            station.id
-          );
-
-
-        const stationName =
-          escapeHtml(
-            station.name
-          );
-
-
-        return `
-          <option value="${stationId}">
-            ${stationName}
-          </option>
-        `;
-
-      }
-    ).join("");
-
-
-  /*
-   * หากสถานีที่เลือกถูกลบ
-   * ให้เลือกสถานีแรกแทน
-   */
-  const selectedExists =
-    stations.some(
-      station =>
-        station.id ===
-        state.selectedStationId
-    );
-
-
-  if (!selectedExists) {
-
-    state.selectedStationId =
-      stations[0].id;
-
-  }
+    stations.length
+      ? stations.map(
+          station => `
+            <option value="${escapeHtml(station.id)}">
+              ${escapeHtml(station.name)}
+            </option>
+          `
+        ).join("")
+      : `<option value="">ไม่มีสถานี</option>`;
 
 
   select.value =
@@ -2355,10 +1942,6 @@ function renderStationSelect() {
 
 }
 
-
-// ============================================================
-// DATE
-// ============================================================
 
 function getAvailableDates() {
 
@@ -2373,12 +1956,13 @@ function getAvailableDates() {
     stations.forEach(
       station => {
 
-        readings =
-          readings.concat(
+        readings.push(
+          ...(
             state.data[
               station.id
             ] || []
-          );
+          )
+        );
 
       }
     );
@@ -2396,22 +1980,16 @@ function getAvailableDates() {
 
 
   return [
-
     ...new Set(
-
       readings
-
         .map(
           reading =>
             dateKey(
               reading.timestamp
             )
         )
-
         .filter(Boolean)
-
     )
-
   ].sort();
 
 }
@@ -2459,10 +2037,6 @@ function renderDateInput() {
   }
 
 
-  /*
-   * เลือกวันที่ล่าสุดอัตโนมัติ
-   * หากยังไม่ได้เลือกวันที่
-   */
   if (
     !state.selectedDate ||
     !dates.includes(
@@ -2499,55 +2073,31 @@ function getReadingsForDate(
   selectedDate
 ) {
 
-  if (
-    !stationId ||
-    !selectedDate
-  ) {
-
-    return [];
-
-  }
-
-
   return (
     state.data[
       stationId
     ] || []
-  )
-
-    .filter(
-      reading =>
-
-        dateKey(
-          reading.timestamp
-        ) === selectedDate
-
-        &&
-
-        Number.isFinite(
-          reading.level
-        )
-    );
+  ).filter(
+    reading =>
+      dateKey(
+        reading.timestamp
+      ) === selectedDate &&
+      Number.isFinite(
+        reading.level
+      )
+  );
 
 }
 
 
-// ============================================================
-// HOURLY
-// ============================================================
-
 function aggregateHourly(readings) {
 
-  /*
-   * สร้างช่องเก็บข้อมูล 24 ชั่วโมง
-   */
   const buckets =
     Array.from(
       {
         length:
           24
       },
-
       () =>
         []
     );
@@ -2563,70 +2113,53 @@ function aggregateHourly(readings) {
 
 
       if (
-        hour === null ||
-        !Number.isFinite(
+        hour !== null &&
+        Number.isFinite(
           reading.level
         )
       ) {
 
-        return;
+        buckets[
+          hour
+        ].push(
+          reading.level
+        );
 
       }
-
-
-      buckets[
-        hour
-      ].push(
-        reading.level
-      );
 
     }
   );
 
 
   return buckets.map(
-    (
-      values,
-      hour
-    ) => {
+    (values, hour) => {
 
       if (!values.length) {
 
         return {
-
           hour,
-
           average:
             null,
-
           min:
             null,
-
           max:
             null,
-
           count:
             0
-
         };
 
       }
 
 
-      const total =
-        values.reduce(
-          (sum, value) =>
-            sum + value,
-          0
-        );
-
-
       return {
-
         hour,
 
         average:
-          total /
+          values.reduce(
+            (sum, value) =>
+              sum + value,
+            0
+          ) /
           values.length,
 
         min:
@@ -2641,7 +2174,6 @@ function aggregateHourly(readings) {
 
         count:
           values.length
-
       };
 
     }
@@ -2676,27 +2208,18 @@ function getDailyStats(
     );
 
 
-  const latest =
-    readings[
-      readings.length - 1
-    ];
-
-
   return {
-
     latest:
-      latest.level,
-
-    latestTime:
-      latest.timestamp,
+      values[
+        values.length - 1
+      ],
 
     average:
       values.reduce(
         (sum, value) =>
           sum + value,
         0
-      )
-      /
+      ) /
       values.length,
 
     min:
@@ -2711,13 +2234,10 @@ function getDailyStats(
 
     count:
       values.length
-
   };
 
 }
-// ============================================================
-// SUMMARY
-// ============================================================
+
 
 function renderSummary() {
 
@@ -2725,20 +2245,17 @@ function renderSummary() {
     $("#chartSummary");
 
 
-  if (!container) {
-
-    return;
-
-  }
-
-
   if (
-    !state.selectedDate ||
-    !stations.length
+    !container ||
+    !state.selectedDate
   ) {
 
-    container.innerHTML =
-      "";
+    if (container) {
+
+      container.innerHTML =
+        "";
+
+    }
 
 
     return;
@@ -2746,9 +2263,6 @@ function renderSummary() {
   }
 
 
-  /*
-   * แสดงสรุปทุกสถานี
-   */
   if (
     state.chartMode === "all"
   ) {
@@ -2764,41 +2278,20 @@ function renderSummary() {
             );
 
 
-          const shortName =
-            escapeHtml(
-              station.shortName ||
-              station.name
-            );
-
-
-          const unit =
-            escapeHtml(
-              station.unit ||
-              "เมตร"
-            );
-
-
           return `
 
             <div
               class="summary-card"
-              style="
-                --summary-color:${station.color};
-              "
+              style="--summary-color:${station.color}"
             >
 
-              <div class="summary-color-line">
-              </div>
-
+              <div class="summary-color-line"></div>
 
               <div>
 
                 <span class="summary-title">
-
-                  ${shortName}
-
+                  ${escapeHtml(station.shortName || station.name)}
                 </span>
-
 
                 <strong class="summary-big">
 
@@ -2809,17 +2302,16 @@ function renderSummary() {
                   }
 
                   <small>
-                    ${unit}
+                    ${escapeHtml(station.unit || "เมตร")}
                   </small>
 
                 </strong>
-
 
                 <span class="summary-description">
 
                   ${
                     stats
-                      ? `เฉลี่ย ${stats.average.toFixed(3)} ${unit}`
+                      ? `เฉลี่ย ${stats.average.toFixed(3)} เมตร`
                       : "ไม่มีข้อมูล"
                   }
 
@@ -2840,9 +2332,6 @@ function renderSummary() {
   }
 
 
-  /*
-   * แสดงสรุปเฉพาะสถานีที่เลือก
-   */
   const station =
     stations.find(
       item =>
@@ -2851,25 +2340,19 @@ function renderSummary() {
     );
 
 
-  if (!station) {
-
-    container.innerHTML =
-      "";
-
-
-    return;
-
-  }
-
-
   const stats =
-    getDailyStats(
-      station.id,
-      state.selectedDate
-    );
+    station
+      ? getDailyStats(
+          station.id,
+          state.selectedDate
+        )
+      : null;
 
 
-  if (!stats) {
+  if (
+    !station ||
+    !stats
+  ) {
 
     container.innerHTML = `
       <div class="summary-empty">
@@ -2884,59 +2367,27 @@ function renderSummary() {
 
 
   const cards = [
-
-    {
-      icon:
-        "◉",
-
-      title:
-        "ค่าล่าสุด",
-
-      value:
-        stats.latest
-    },
-
-    {
-      icon:
-        "≈",
-
-      title:
-        "ค่าเฉลี่ย",
-
-      value:
-        stats.average
-    },
-
-    {
-      icon:
-        "↓",
-
-      title:
-        "ต่ำสุด",
-
-      value:
-        stats.min
-    },
-
-    {
-      icon:
-        "↑",
-
-      title:
-        "สูงสุด",
-
-      value:
-        stats.max
-    }
-
+    [
+      "◉",
+      "ค่าล่าสุด",
+      stats.latest
+    ],
+    [
+      "≈",
+      "ค่าเฉลี่ย",
+      stats.average
+    ],
+    [
+      "↓",
+      "ต่ำสุด",
+      stats.min
+    ],
+    [
+      "↑",
+      "สูงสุด",
+      stats.max
+    ]
   ];
-
-
-  const unit =
-    escapeHtml(
-      station.unit ||
-      "เมตร"
-    );
 
 
   container.innerHTML =
@@ -2946,27 +2397,21 @@ function renderSummary() {
         <div class="summary-card">
 
           <div class="summary-icon">
-
-            ${card.icon}
-
+            ${card[0]}
           </div>
-
 
           <div>
 
             <span class="summary-title">
-
-              ${card.title}
-
+              ${card[1]}
             </span>
-
 
             <strong class="summary-big">
 
-              ${card.value.toFixed(3)}
+              ${card[2].toFixed(3)}
 
               <small>
-                ${unit}
+                ${escapeHtml(station.unit || "เมตร")}
               </small>
 
             </strong>
@@ -2980,10 +2425,6 @@ function renderSummary() {
 
 }
 
-
-// ============================================================
-// MODES
-// ============================================================
 
 function renderModeButtons() {
 
@@ -3003,6 +2444,8 @@ function renderModeButtons() {
     );
 
 }
+
+
 // ============================================================
 // CHART
 // ============================================================
@@ -3023,9 +2466,6 @@ function renderChart() {
   }
 
 
-  /*
-   * ทำลายกราฟเก่าก่อนสร้างกราฟใหม่
-   */
   if (state.chart) {
 
     state.chart.destroy();
@@ -3043,7 +2483,6 @@ function renderChart() {
         length:
           24
       },
-
       (_, hour) =>
         `${String(hour).padStart(2, "0")}:00`
     );
@@ -3072,103 +2511,88 @@ function renderChart() {
     [];
 
 
-  /*
-   * กราฟเปรียบเทียบทุกสถานี
-   */
   if (
     state.chartMode === "all"
   ) {
 
-    const chartTitle =
-      $("#chartTitle");
+    if ($("#chartTitle")) {
 
-
-    if (chartTitle) {
-
-      chartTitle.textContent =
+      $("#chartTitle").textContent =
         `เปรียบเทียบระดับน้ำทั้ง ${stations.length} สถานี`;
 
     }
 
 
-    stations.forEach(
-      station => {
+    datasets =
+      stations.map(
+        station => {
 
-        const hourly =
-          aggregateHourly(
-            getReadingsForDate(
-              station.id,
-              state.selectedDate
-            )
-          );
-
-
-        datasets.push({
-
-          label:
-            station.shortName ||
-            station.name,
-
-          data:
-            hourly.map(
-              item =>
-                item.average
-            ),
-
-          borderColor:
-            station.color,
-
-          backgroundColor:
-            station.color,
-
-          borderWidth:
-            3,
-
-          pointRadius:
-            4,
-
-          pointHoverRadius:
-            8,
-
-          pointBackgroundColor:
-            dark
-              ? "#10222c"
-              : "#ffffff",
-
-          pointBorderColor:
-            station.color,
-
-          pointBorderWidth:
-            2,
-
-          tension:
-            0.38,
-
-          spanGaps:
-            false
-
-        });
-
-      }
-    );
+          const hourly =
+            aggregateHourly(
+              getReadingsForDate(
+                station.id,
+                state.selectedDate
+              )
+            );
 
 
-    const chartNotice =
-      $("#chartNotice");
+          return {
+            label:
+              station.shortName ||
+              station.name,
+
+            data:
+              hourly.map(
+                item =>
+                  item.average
+              ),
+
+            borderColor:
+              station.color,
+
+            backgroundColor:
+              station.color,
+
+            borderWidth:
+              3,
+
+            pointRadius:
+              4,
+
+            pointHoverRadius:
+              8,
+
+            pointBackgroundColor:
+              dark
+                ? "#10222c"
+                : "#ffffff",
+
+            pointBorderColor:
+              station.color,
+
+            pointBorderWidth:
+              2,
+
+            tension:
+              0.38,
+
+            spanGaps:
+              false
+          };
+
+        }
+      );
 
 
-    if (chartNotice) {
+    if ($("#chartNotice")) {
 
-      chartNotice.textContent =
+      $("#chartNotice").textContent =
         `เปรียบเทียบค่าเฉลี่ยรายชั่วโมงของทั้ง ${stations.length} สถานี`;
 
     }
 
   }
 
-  /*
-   * กราฟเฉพาะสถานีที่เลือก
-   */
   else {
 
     const station =
@@ -3180,18 +2604,6 @@ function renderChart() {
 
 
     if (!station) {
-
-      const chartTitle =
-        $("#chartTitle");
-
-
-      if (chartTitle) {
-
-        chartTitle.textContent =
-          "ไม่มีสถานี";
-
-      }
-
 
       return;
 
@@ -3211,17 +2623,10 @@ function renderChart() {
       );
 
 
-    const chartTitle =
-      $("#chartTitle");
+    if ($("#chartTitle")) {
 
-
-    if (chartTitle) {
-
-      chartTitle.textContent =
-        `ระดับน้ำ · ${
-          station.shortName ||
-          station.name
-        }`;
+      $("#chartTitle").textContent =
+        `ระดับน้ำ · ${station.shortName || station.name}`;
 
     }
 
@@ -3262,7 +2667,6 @@ function renderChart() {
 
 
     datasets = [
-
       {
         label:
           station.shortName ||
@@ -3309,7 +2713,6 @@ function renderChart() {
         spanGaps:
           false
       },
-
       {
         label:
           "ระดับเฝ้าระวัง",
@@ -3335,22 +2738,14 @@ function renderChart() {
           2,
 
         pointRadius:
-          0,
-
-        fill:
-          false
+          0
       }
-
     ];
 
 
-    const chartNotice =
-      $("#chartNotice");
+    if ($("#chartNotice")) {
 
-
-    if (chartNotice) {
-
-      chartNotice.textContent =
+      $("#chartNotice").textContent =
         readings.length
           ? `ข้อมูล ${readings.length} จุดวัด ถูกคำนวณเป็นค่าเฉลี่ยรายชั่วโมง`
           : "ไม่มีข้อมูลสำหรับวันที่เลือก";
@@ -3360,13 +2755,9 @@ function renderChart() {
   }
 
 
-  const chartDateLabel =
-    $("#chartDateLabel");
+  if ($("#chartDateLabel")) {
 
-
-  if (chartDateLabel) {
-
-    chartDateLabel.textContent =
+    $("#chartDateLabel").textContent =
       state.selectedDate
         ? formatDate(
             `${state.selectedDate}T12:00:00+07:00`,
@@ -3384,7 +2775,6 @@ function renderChart() {
     new Chart(
       canvas,
       {
-
         type:
           "line",
 
@@ -3396,7 +2786,6 @@ function renderChart() {
 
         options:
           {
-
             responsive:
               true,
 
@@ -3414,10 +2803,8 @@ function renderChart() {
 
             plugins:
               {
-
                 legend:
                   {
-
                     position:
                       "top",
 
@@ -3426,7 +2813,6 @@ function renderChart() {
 
                     labels:
                       {
-
                         color:
                           textColor,
 
@@ -3441,14 +2827,11 @@ function renderChart() {
 
                         padding:
                           20
-
                       }
-
                   },
 
                 tooltip:
                   {
-
                     backgroundColor:
                       "rgba(8,30,42,.96)",
 
@@ -3460,7 +2843,6 @@ function renderChart() {
 
                     callbacks:
                       {
-
                         title:
                           items =>
                             items.length
@@ -3476,38 +2858,25 @@ function renderChart() {
                             ) {
 
                               return (
-                                context.dataset.label +
-                                ": ไม่มีข้อมูล"
+                                `${context.dataset.label}: ไม่มีข้อมูล`
                               );
 
                             }
 
 
                             return (
-                              context.dataset.label +
-                              ": " +
-                              Number(
-                                context.raw
-                              ).toFixed(
-                                3
-                              ) +
-                              " เมตร"
+                              `${context.dataset.label}: ${Number(context.raw).toFixed(3)} เมตร`
                             );
 
                           }
-
                       }
-
                   }
-
               },
 
             scales:
               {
-
                 y:
                   {
-
                     beginAtZero:
                       true,
 
@@ -3531,7 +2900,6 @@ function renderChart() {
 
                     title:
                       {
-
                         display:
                           true,
 
@@ -3540,14 +2908,11 @@ function renderChart() {
 
                         color:
                           textColor
-
                       }
-
                   },
 
                 x:
                   {
-
                     border:
                       {
                         display:
@@ -3562,7 +2927,6 @@ function renderChart() {
 
                     ticks:
                       {
-
                         color:
                           textColor,
 
@@ -3572,102 +2936,29 @@ function renderChart() {
                         maxRotation:
                           0,
 
-                        callback:
-                          function (
-                            value,
-                            index
-                          ) {
+                        callback(
+                          value,
+                          index
+                        ) {
 
-                            return (
-                              index % 2 === 0
-                                ? labels[index]
-                                : ""
-                            );
+                          return index % 2 === 0
+                            ? labels[index]
+                            : "";
 
-                          }
-
+                        }
                       }
-
                   }
-
               }
-
           }
-
       }
     );
 
 }
+
+
 // ============================================================
 // MAP
 // ============================================================
-
-function createMarkerIcon(
-  station,
-  selected
-) {
-
-  return L.divIcon({
-
-    className:
-      "custom-station-marker",
-
-    html: `
-
-      <div
-
-        class="
-          modern-map-marker
-          ${
-            selected
-              ? "selected"
-              : ""
-          }
-        "
-
-        style="
-          --marker-color:${station.color};
-          --marker-soft:${hexToRgba(station.color, 0.22)};
-        "
-      >
-
-        <div class="marker-radar">
-        </div>
-
-
-        <div class="marker-center">
-
-          <div class="marker-center-dot">
-          </div>
-
-        </div>
-
-      </div>
-
-    `,
-
-    iconSize:
-      [
-        54,
-        54
-      ],
-
-    iconAnchor:
-      [
-        27,
-        27
-      ],
-
-    popupAnchor:
-      [
-        0,
-        -25
-      ]
-
-  });
-
-}
-
 
 function getStationCoordinates(station) {
 
@@ -3684,9 +2975,6 @@ function getStationCoordinates(station) {
     ] || [];
 
 
-  /*
-   * ใช้พิกัดล่าสุดจาก Google Sheets ก่อน
-   */
   for (
     let index =
       readings.length - 1;
@@ -3725,36 +3013,80 @@ function getStationCoordinates(station) {
   }
 
 
-  /*
-   * หากใน Google Sheets ไม่มีพิกัด
-   * ให้ใช้พิกัดที่ตั้งค่าในสถานี
-   */
-  const fallbackLatitude =
+  const latitude =
     Number(
       station.latitude
     );
 
 
-  const fallbackLongitude =
+  const longitude =
     Number(
       station.longitude
     );
 
 
-  if (
-    !Number.isFinite(fallbackLatitude) ||
-    !Number.isFinite(fallbackLongitude)
-  ) {
+  return (
+    Number.isFinite(latitude) &&
+    Number.isFinite(longitude)
+  )
+    ? [
+        latitude,
+        longitude
+      ]
+    : null;
 
-    return null;
-
-  }
+}
 
 
-  return [
-    fallbackLatitude,
-    fallbackLongitude
-  ];
+function createMarkerIcon(
+  station,
+  selected
+) {
+
+  return L.divIcon({
+    className:
+      "custom-station-marker",
+
+    html: `
+
+      <div
+        class="modern-map-marker ${
+          selected
+            ? "selected"
+            : ""
+        }"
+        style="
+          --marker-color:${station.color};
+          --marker-soft:${hexToRgba(station.color, 0.22)};
+        "
+      >
+        <div class="marker-radar"></div>
+
+        <div class="marker-center">
+          <div class="marker-center-dot"></div>
+        </div>
+      </div>
+
+    `,
+
+    iconSize:
+      [
+        54,
+        54
+      ],
+
+    iconAnchor:
+      [
+        27,
+        27
+      ],
+
+    popupAnchor:
+      [
+        0,
+        -25
+      ]
+  });
 
 }
 
@@ -3771,11 +3103,21 @@ function setupMap() {
   }
 
 
-  const mapElement =
-    $("#map");
+  const mapContainer =
+    document.getElementById(
+      "map"
+    );
 
 
-  if (!mapElement) {
+  /*
+   * ป้องกัน Error: Map container not found
+   */
+  if (!mapContainer) {
+
+    console.warn(
+      "ไม่พบ <div id=\"map\"></div>"
+    );
+
 
     return;
 
@@ -3792,10 +3134,6 @@ function setupMap() {
     stations[0];
 
 
-  /*
-   * ใช้พิกัดกลางประเทศไทย
-   * หากยังไม่มีสถานี
-   */
   const coordinates =
     getStationCoordinates(
       station
@@ -3809,7 +3147,7 @@ function setupMap() {
 
   state.map =
     L.map(
-      "map"
+      mapContainer
     ).setView(
       coordinates,
       station
@@ -3876,9 +3214,6 @@ function renderMapMarkers() {
   }
 
 
-  /*
-   * ลบหมุดเดิมออกก่อน
-   */
   state.markers.forEach(
     marker =>
       state.map.removeLayer(
@@ -3888,10 +3223,6 @@ function renderMapMarkers() {
 
 
   state.markers =
-    [];
-
-
-  const validCoordinates =
     [];
 
 
@@ -3911,34 +3242,11 @@ function renderMapMarkers() {
       }
 
 
-      const latitude =
-        Number(
-          coordinates[0]
-        );
-
-
-      const longitude =
-        Number(
-          coordinates[1]
-        );
-
-
-      if (
-        !Number.isFinite(latitude) ||
-        !Number.isFinite(longitude)
-      ) {
-
-        return;
-
-      }
-
-
-      validCoordinates.push(
-        [
-          latitude,
-          longitude
-        ]
-      );
+      const [
+        latitude,
+        longitude
+      ] =
+        coordinates;
 
 
       const reading =
@@ -3955,10 +3263,7 @@ function renderMapMarkers() {
 
       const marker =
         L.marker(
-          [
-            latitude,
-            longitude
-          ],
+          coordinates,
           {
             icon:
               createMarkerIcon(
@@ -3975,28 +3280,11 @@ function renderMapMarkers() {
       );
 
 
-      const stationName =
-        escapeHtml(
-          station.name
-        );
-
-
-      const stationUnit =
-        escapeHtml(
-          station.unit ||
-          "เมตร"
-        );
-
-
       marker.bindPopup(`
 
         <div
-
           class="station-popup"
-
-          style="
-            --popup-color:${station.color};
-          "
+          style="--popup-color:${station.color}"
         >
 
           <div class="popup-header">
@@ -4005,21 +3293,17 @@ function renderMapMarkers() {
               <span></span>
             </div>
 
-
             <div>
-
               <strong>
-                ${stationName}
+                ${escapeHtml(station.name)}
               </strong>
 
               <small>
                 ${status.text}
               </small>
-
             </div>
 
           </div>
-
 
           <div class="popup-level">
 
@@ -4036,43 +3320,26 @@ function renderMapMarkers() {
               }
 
               <small>
-                ${stationUnit}
+                ${escapeHtml(station.unit || "เมตร")}
               </small>
 
             </strong>
 
           </div>
 
-
           <div class="popup-grid">
 
             <div>
-
-              <span>
-                LATITUDE
-              </span>
-
-              <strong>
-                ${latitude.toFixed(6)}
-              </strong>
-
+              <span>LATITUDE</span>
+              <strong>${latitude.toFixed(6)}</strong>
             </div>
 
-
             <div>
-
-              <span>
-                LONGITUDE
-              </span>
-
-              <strong>
-                ${longitude.toFixed(6)}
-              </strong>
-
+              <span>LONGITUDE</span>
+              <strong>${longitude.toFixed(6)}</strong>
             </div>
 
           </div>
-
 
           <div class="popup-footer">
 
@@ -4092,30 +3359,8 @@ function renderMapMarkers() {
       `);
 
 
-      /*
-       * กดหมุดแล้วเปลี่ยนสถานีที่เลือก
-       */
-      marker.on(
-        "click",
-        () => {
-
-          state.selectedStationId =
-            station.id;
-
-
-          state.chartMode =
-            "station";
-
-
-          state.selectedDate =
-            "";
-
-
-          renderEverything(
-            true
-          );
-
-        }
+      marker.addTo(
+        state.map
       );
 
 
@@ -4127,80 +3372,40 @@ function renderMapMarkers() {
   );
 
 
-  /*
-   * หากมีสถานีที่เลือก
-   * ให้เลื่อนแผนที่ไปยังสถานีนั้น
-   */
-  const selectedStation =
-    stations.find(
-      station =>
-        station.id ===
-        state.selectedStationId
-    );
-
-
-  const selectedCoordinates =
-    getStationCoordinates(
-      selectedStation
-    );
-
-
-  if (selectedCoordinates) {
-
-    state.map.panTo(
-      selectedCoordinates,
-      {
-        animate:
-          true
-      }
-    );
-
-  }
-
-
-  /*
-   * แจ้ง Leaflet ให้คำนวณขนาดแผนที่ใหม่
-   */
   setTimeout(
-    () => {
-
-      state.map?.invalidateSize();
-
-    },
-    50
+    () =>
+      state.map?.invalidateSize(),
+    100
   );
 
 }
+
+
 // ============================================================
 // THEME
 // ============================================================
 
 function getPreferredTheme() {
 
-  const savedTheme =
+  const saved =
     localStorage.getItem(
       "water-dashboard-theme"
     );
 
 
   if (
-    savedTheme === "dark" ||
-    savedTheme === "light"
+    saved === "dark" ||
+    saved === "light"
   ) {
 
-    return savedTheme;
+    return saved;
 
   }
 
 
-  const prefersDark =
-    window.matchMedia &&
-    window.matchMedia(
-      "(prefers-color-scheme: dark)"
-    ).matches;
-
-
-  return prefersDark
+  return window.matchMedia?.(
+    "(prefers-color-scheme: dark)"
+  ).matches
     ? "dark"
     : "light";
 
@@ -4209,69 +3414,39 @@ function getPreferredTheme() {
 
 function applyTheme(theme) {
 
-  const validTheme =
-    theme === "dark"
-      ? "dark"
-      : "light";
-
-
   document.documentElement
     .setAttribute(
       "data-theme",
-      validTheme
+      theme
     );
 
 
-  try {
-
-    localStorage.setItem(
-      "water-dashboard-theme",
-      validTheme
-    );
-
-  }
-
-  catch (error) {
-
-    console.error(
-      "ไม่สามารถบันทึกธีม",
-      error
-    );
-
-  }
+  localStorage.setItem(
+    "water-dashboard-theme",
+    theme
+  );
 
 
-  const themeIcon =
-    $("#themeIcon");
+  if ($("#themeIcon")) {
 
-
-  if (themeIcon) {
-
-    themeIcon.textContent =
-      validTheme === "dark"
+    $("#themeIcon").textContent =
+      theme === "dark"
         ? "☀"
         : "☾";
 
   }
 
 
-  const themeText =
-    $("#themeText");
+  if ($("#themeText")) {
 
-
-  if (themeText) {
-
-    themeText.textContent =
-      validTheme === "dark"
+    $("#themeText").textContent =
+      theme === "dark"
         ? "สว่าง"
         : "มืด";
 
   }
 
 
-  /*
-   * สร้างกราฟใหม่เพื่อปรับสีให้ตรงกับธีม
-   */
   if (
     Object.keys(
       state.data
@@ -4285,271 +3460,12 @@ function applyTheme(theme) {
 }
 
 
-$("#themeToggle")
-  ?.addEventListener(
-    "click",
-    () => {
-
-      const currentTheme =
-        document.documentElement
-          .getAttribute(
-            "data-theme"
-          );
-
-
-      applyTheme(
-        currentTheme === "dark"
-          ? "light"
-          : "dark"
-      );
-
-    }
-  );
-
-
 // ============================================================
-// DOWNLOAD MENU
-// ============================================================
-
-const downloadMenu =
-  $("#downloadMenu");
-
-
-const downloadMenuButton =
-  $("#downloadMenuButton");
-
-
-function updateDownloadMenuInfo() {
-
-  const station =
-    stations.find(
-      item =>
-        item.id ===
-        state.selectedStationId
-    );
-
-
-  const dateElement =
-    $("#downloadCurrentDate");
-
-
-  if (dateElement) {
-
-    dateElement.textContent =
-      state.selectedDate
-        ? formatDate(
-            state.selectedDate +
-            "T12:00:00+07:00",
-            {
-              day:
-                "2-digit",
-
-              month:
-                "short",
-
-              year:
-                "numeric"
-            }
-          )
-        : "ข้อมูลทั้งหมด";
-
-  }
-
-
-  const stationElement =
-    $("#downloadCurrentStation");
-
-
-  if (stationElement) {
-
-    stationElement.textContent =
-      station
-        ? station.name
-        : "—";
-
-  }
-
-}
-
-
-function openDownloadMenu() {
-
-  updateDownloadMenuInfo();
-
-
-  downloadMenu
-    ?.classList.add(
-      "show"
-    );
-
-
-  downloadMenuButton
-    ?.setAttribute(
-      "aria-expanded",
-      "true"
-    );
-
-}
-
-
-function closeDownloadMenu() {
-
-  downloadMenu
-    ?.classList.remove(
-      "show"
-    );
-
-
-  downloadMenuButton
-    ?.setAttribute(
-      "aria-expanded",
-      "false"
-    );
-
-}
-
-
-downloadMenuButton
-  ?.addEventListener(
-    "click",
-    event => {
-
-      event.stopPropagation();
-
-
-      if (
-        downloadMenu
-          ?.classList.contains(
-            "show"
-          )
-      ) {
-
-        closeDownloadMenu();
-
-      }
-
-      else {
-
-        openDownloadMenu();
-
-      }
-
-    }
-  );
-
-
-$("#closeDownloadMenu")
-  ?.addEventListener(
-    "click",
-    event => {
-
-      event.stopPropagation();
-
-
-      closeDownloadMenu();
-
-    }
-  );
-
-
-downloadMenu
-  ?.addEventListener(
-    "click",
-    event => {
-
-      /*
-       * ป้องกัน document click
-       * ปิดเมนูขณะกดอยู่ภายในเมนู
-       */
-      event.stopPropagation();
-
-    }
-  );
-
-
-document.addEventListener(
-  "click",
-  () => {
-
-    closeDownloadMenu();
-
-
-    /*
-     * ปิดเมนูจัดการสถานีทั้งหมด
-     */
-    document
-      .querySelectorAll(
-        ".station-action-menu.show"
-      )
-      .forEach(
-        menu => {
-
-          menu.classList.remove(
-            "show"
-          );
-
-        }
-      );
-
-
-    document
-      .querySelectorAll(
-        "[data-station-menu]"
-      )
-      .forEach(
-        button => {
-
-          button.setAttribute(
-            "aria-expanded",
-            "false"
-          );
-
-        }
-      );
-
-  }
-);
-
-
-document.addEventListener(
-  "keydown",
-  event => {
-
-    if (
-      event.key === "Escape"
-    ) {
-
-      closeDownloadMenu();
-
-
-      document
-        .querySelectorAll(
-          ".station-action-menu.show"
-        )
-        .forEach(
-          menu => {
-
-            menu.classList.remove(
-              "show"
-            );
-
-          }
-        );
-
-    }
-
-  }
-);
-// ============================================================
-// DOWNLOAD FILE
+// DOWNLOAD
 // ============================================================
 
 function csvCell(value) {
 
-  /*
-   * ครอบข้อมูลด้วย double quote
-   * และ escape double quote ภายในข้อมูล
-   */
   return (
     '"' +
     String(
@@ -4601,10 +3517,9 @@ function downloadBlob(
     filename;
 
 
-  document.body
-    .appendChild(
-      link
-    );
+  document.body.appendChild(
+    link
+  );
 
 
   link.click();
@@ -4613,17 +3528,11 @@ function downloadBlob(
   link.remove();
 
 
-  /*
-   * คืนหน่วยความจำหลังดาวน์โหลด
-   */
   setTimeout(
-    () => {
-
+    () =>
       URL.revokeObjectURL(
         url
-      );
-
-    },
+      ),
     1000
   );
 
@@ -4670,23 +3579,12 @@ function exportTime(timestamp) {
 
 function getExportReadings(station) {
 
-  if (!station) {
-
-    return [];
-
-  }
-
-
   let readings =
     state.data[
-      station.id
+      station?.id
     ] || [];
 
 
-  /*
-   * ถ้ามีวันที่เลือก
-   * ดาวน์โหลดเฉพาะข้อมูลของวันนั้น
-   */
   if (state.selectedDate) {
 
     readings =
@@ -4712,7 +3610,6 @@ function createStationCsv(
 ) {
 
   const rows = [
-
     [
       "สถานี",
       "วันที่",
@@ -4721,552 +3618,281 @@ function createStationCsv(
       "Latitude",
       "Longitude"
     ]
-
   ];
 
 
   readings.forEach(
     reading => {
 
-      rows.push(
-        [
+      rows.push([
+        station.name,
 
-          station.name,
+        exportDate(
+          reading.timestamp
+        ),
 
-          exportDate(
-            reading.timestamp
-          ),
+        exportTime(
+          reading.timestamp
+        ),
 
-          exportTime(
-            reading.timestamp
-          ),
+        Number.isFinite(
+          reading.level
+        )
+          ? reading.level.toFixed(3)
+          : "",
 
-          Number.isFinite(
-            reading.level
-          )
-            ? reading.level.toFixed(3)
-            : "",
+        Number.isFinite(
+          reading.latitude
+        )
+          ? reading.latitude.toFixed(6)
+          : "",
 
-          Number.isFinite(
-            reading.latitude
-          )
-            ? reading.latitude.toFixed(6)
-            : "",
-
-          Number.isFinite(
-            reading.longitude
-          )
-            ? reading.longitude.toFixed(6)
-            : ""
-
-        ]
-      );
+        Number.isFinite(
+          reading.longitude
+        )
+          ? reading.longitude.toFixed(6)
+          : ""
+      ]);
 
     }
   );
 
 
   return rows
-
     .map(
       row =>
         row
-
           .map(
             csvCell
           )
-
           .join(",")
     )
-
     .join("\r\n");
 
 }
 
 
-/*
- * ทำชื่อไฟล์ให้ปลอดภัย
- */
-function safeFilename(value) {
+function closeDownloadMenu() {
 
-  return String(
-    value || "station"
-  )
+  $("#downloadMenu")
+    ?.classList.remove(
+      "show"
+    );
 
-    .trim()
 
-    .replace(
-      /[<>:"/\\|?*\u0000-\u001F]/g,
-      "-"
-    )
-
-    .replace(
-      /\s+/g,
-      "-"
-    )
-
-    .replace(
-      /-+/g,
-      "-"
+  $("#downloadMenuButton")
+    ?.setAttribute(
+      "aria-expanded",
+      "false"
     );
 
 }
 
 
-/*
- * เพิ่ม UTF-8 BOM เพื่อให้ Excel
- * เปิดภาษาไทยได้ถูกต้อง
- */
-function withUtf8Bom(content) {
+function updateDownloadMenuInfo() {
 
-  return (
-    "\uFEFF" +
-    content
-  );
+  const station =
+    stations.find(
+      item =>
+        item.id ===
+        state.selectedStationId
+    );
+
+
+  if ($("#downloadCurrentDate")) {
+
+    $("#downloadCurrentDate").textContent =
+      state.selectedDate ||
+      "ข้อมูลทั้งหมด";
+
+  }
+
+
+  if ($("#downloadCurrentStation")) {
+
+    $("#downloadCurrentStation").textContent =
+      station?.name ||
+      "—";
+
+  }
 
 }
-// ============================================================
-// DOWNLOAD SELECTED STATION CSV
-// ============================================================
-
-$("#downloadSelectedCsv")
-  ?.addEventListener(
-    "click",
-    () => {
-
-      const station =
-        stations.find(
-          item =>
-            item.id ===
-            state.selectedStationId
-        );
-
-
-      if (!station) {
-
-        alert(
-          "ไม่พบสถานีที่เลือก"
-        );
-
-
-        return;
-
-      }
-
-
-      const readings =
-        getExportReadings(
-          station
-        );
-
-
-      if (!readings.length) {
-
-        alert(
-          "ไม่มีข้อมูลสำหรับวันที่เลือก"
-        );
-
-
-        return;
-
-      }
-
-
-      const filename =
-        safeFilename(
-          station.id ||
-          station.name
-        );
-
-
-      downloadBlob(
-
-        withUtf8Bom(
-          createStationCsv(
-            station,
-            readings
-          )
-        ),
-
-        `station-${filename}-${state.selectedDate || "all"}.csv`,
-
-        "text/csv;charset=utf-8"
-
-      );
-
-
-      closeDownloadMenu();
-
-    }
-  );
 
 
 // ============================================================
-// DOWNLOAD ALL STATIONS CSV
+// STATION DIALOGS
 // ============================================================
 
-$("#downloadAllCsv")
-  ?.addEventListener(
-    "click",
-    () => {
+function closeStationDialog() {
 
-      const rows = [
-
-        [
-          "สถานี",
-          "วันที่",
-          "เวลา",
-          "ระดับน้ำ (m)",
-          "Latitude",
-          "Longitude"
-        ]
-
-      ];
+  const dialog =
+    $("#addStationDialog");
 
 
-      let total =
-        0;
+  if (dialog?.open) {
+
+    dialog.close();
+
+  }
+
+}
 
 
-      stations.forEach(
-        station => {
+function openStationDialog(
+  stationId = ""
+) {
 
-          const readings =
-            getExportReadings(
-              station
-            );
-
-
-          readings.forEach(
-            reading => {
-
-              total++;
+  const dialog =
+    $("#addStationDialog");
 
 
-              rows.push(
-                [
+  const form =
+    $("#addStationForm");
 
-                  station.name,
 
-                  exportDate(
-                    reading.timestamp
-                  ),
+  if (
+    !dialog ||
+    !form
+  ) {
 
-                  exportTime(
-                    reading.timestamp
-                  ),
+    return;
 
-                  Number.isFinite(
-                    reading.level
-                  )
-                    ? reading.level.toFixed(3)
-                    : "",
+  }
 
-                  Number.isFinite(
-                    reading.latitude
-                  )
-                    ? reading.latitude.toFixed(6)
-                    : "",
 
-                  Number.isFinite(
-                    reading.longitude
-                  )
-                    ? reading.longitude.toFixed(6)
-                    : ""
+  form.reset();
 
-                ]
-              );
 
-            }
-          );
+  form.elements.stationId.value =
+    stationId;
+
+
+  const station =
+    stations.find(
+      item =>
+        item.id ===
+        stationId
+    );
+
+
+  $("#stationDialogTitle").textContent =
+    station
+      ? "แก้ไขสถานี"
+      : "เพิ่มสถานีใหม่";
+
+
+  $("#stationSubmitButton").textContent =
+    station
+      ? "บันทึกการแก้ไข"
+      : "บันทึกสถานี";
+
+
+  if (station) {
+
+    [
+      "name",
+      "shortName",
+      "latitude",
+      "longitude",
+      "googleSheetCsv",
+      "warningLevel",
+      "maxPipeHeight",
+      "color"
+    ].forEach(
+      name => {
+
+        if (
+          form.elements[
+            name
+          ]
+        ) {
+
+          form.elements[
+            name
+          ].value =
+            station[
+              name
+            ] ?? "";
 
         }
-      );
-
-
-      if (total === 0) {
-
-        alert(
-          "ไม่มีข้อมูลสำหรับวันที่เลือก"
-        );
-
-
-        return;
 
       }
+    );
+
+  }
 
 
-      const csv =
-        rows
+  dialog.showModal();
 
-          .map(
-            row =>
-              row
-
-                .map(
-                  csvCell
-                )
-
-                .join(",")
-          )
-
-          .join("\r\n");
+}
 
 
-      downloadBlob(
+function openDeleteDialog(stationId) {
 
-        withUtf8Bom(
-          csv
-        ),
+  if (
+    stations.length <= 1
+  ) {
 
-        `water-all-${state.selectedDate || "all"}.csv`,
-
-        "text/csv;charset=utf-8"
-
-      );
+    alert(
+      "ต้องมีอย่างน้อย 1 สถานี"
+    );
 
 
-      closeDownloadMenu();
+    return;
 
-    }
-  );
-
-
-// ============================================================
-// DOWNLOAD DAILY SUMMARY CSV
-// ============================================================
-
-$("#downloadSummaryCsv")
-  ?.addEventListener(
-    "click",
-    () => {
-
-      if (!state.selectedDate) {
-
-        alert(
-          "กรุณาเลือกวันที่"
-        );
+  }
 
 
-        return;
-
-      }
-
-
-      const rows = [
-
-        [
-          "สถานี",
-          "วันที่",
-          "ค่าล่าสุด",
-          "ค่าเฉลี่ย",
-          "ต่ำสุด",
-          "สูงสุด",
-          "จำนวนข้อมูล"
-        ]
-
-      ];
+  const station =
+    stations.find(
+      item =>
+        item.id ===
+        stationId
+    );
 
 
-      stations.forEach(
-        station => {
-
-          const stats =
-            getDailyStats(
-              station.id,
-              state.selectedDate
-            );
+  const dialog =
+    $("#deleteStationDialog");
 
 
-          rows.push(
-            [
+  if (
+    !station ||
+    !dialog
+  ) {
 
-              station.name,
+    return;
 
-              state.selectedDate,
-
-              stats
-                ? stats.latest.toFixed(3)
-                : "",
-
-              stats
-                ? stats.average.toFixed(3)
-                : "",
-
-              stats
-                ? stats.min.toFixed(3)
-                : "",
-
-              stats
-                ? stats.max.toFixed(3)
-                : "",
-
-              stats
-                ? stats.count
-                : 0
-
-            ]
-          );
-
-        }
-      );
+  }
 
 
-      const csv =
-        rows
-
-          .map(
-            row =>
-              row
-
-                .map(
-                  csvCell
-                )
-
-                .join(",")
-          )
-
-          .join("\r\n");
+  dialog.dataset.stationId =
+    stationId;
 
 
-      downloadBlob(
-
-        withUtf8Bom(
-          csv
-        ),
-
-        `water-summary-${state.selectedDate}.csv`,
-
-        "text/csv;charset=utf-8"
-
-      );
+  $("#deleteStationName").textContent =
+    station.name;
 
 
-      closeDownloadMenu();
+  dialog.showModal();
 
-    }
-  );
+}
 
 
 // ============================================================
-// DOWNLOAD JSON BACKUP
-// ============================================================
-
-$("#downloadJson")
-  ?.addEventListener(
-    "click",
-    () => {
-
-      const backup = {
-
-        system:
-          "RMUTL Flood Monitoring",
-
-        version:
-          2,
-
-        exportedAt:
-          new Date()
-            .toISOString(),
-
-        selectedStationId:
-          state.selectedStationId,
-
-        selectedDate:
-          state.selectedDate,
-
-        stations:
-          stations.map(
-            station => ({
-
-              id:
-                station.id,
-
-              name:
-                station.name,
-
-              shortName:
-                station.shortName,
-
-              deployed:
-                station.deployed,
-
-              latitude:
-                station.latitude,
-
-              longitude:
-                station.longitude,
-
-              googleSheetCsv:
-                station.googleSheetCsv,
-
-              unit:
-                station.unit,
-
-              warningLevel:
-                station.warningLevel,
-
-              maxPipeHeight:
-                station.maxPipeHeight,
-
-              color:
-                station.color,
-
-              softColor:
-                station.softColor,
-
-              readings:
-                state.data[
-                  station.id
-                ] || []
-
-            })
-          )
-
-      };
-
-
-      downloadBlob(
-
-        JSON.stringify(
-          backup,
-          null,
-          2
-        ),
-
-        `water-monitoring-backup-${state.selectedDate || "all"}.json`,
-
-        "application/json;charset=utf-8"
-
-      );
-
-
-      closeDownloadMenu();
-
-    }
-  );
-// ============================================================
-// RENDER
+// RENDER AND REFRESH
 // ============================================================
 
 function renderEverything(
   moveMap = false
 ) {
 
-  /*
-   * ตรวจสอบว่าสถานีที่เลือกยังมีอยู่
-   */
-  const selectedStationExists =
-    stations.some(
+  if (
+    stations.length &&
+    !stations.some(
       station =>
         station.id ===
         state.selectedStationId
-    );
-
-
-  if (
-    !selectedStationExists &&
-    stations.length
+    )
   ) {
 
     state.selectedStationId =
@@ -5303,9 +3929,6 @@ function renderEverything(
   }
 
 
-  /*
-   * เลื่อนแผนที่ไปยังสถานีที่เลือก
-   */
   if (
     moveMap &&
     state.map
@@ -5343,29 +3966,21 @@ function renderEverything(
 }
 
 
-// ============================================================
-// REFRESH DATA
-// ============================================================
-
 async function refreshData() {
 
-  const globalUpdated =
+  const updated =
     $("#globalUpdated");
 
 
-  if (globalUpdated) {
+  if (updated) {
 
-    globalUpdated.textContent =
+    updated.textContent =
       "กำลังโหลดข้อมูล...";
 
   }
 
 
-  /*
-   * โหลดทุกสถานีพร้อมกัน
-   */
   await Promise.all(
-
     stations.map(
       async station => {
 
@@ -5378,43 +3993,36 @@ async function refreshData() {
 
       }
     )
-
   );
 
 
   renderEverything();
 
 
-  /*
-   * หาเวลาของข้อมูลล่าสุดจากทุกสถานี
-   */
   const newest =
     stations
 
       .map(
-        station =>
-          latestReading(
-            station
-          )
+        latestReading
       )
 
       .filter(Boolean)
 
       .sort(
-        (a, b) =>
+        (first, second) =>
           new Date(
-            b.timestamp
+            second.timestamp
           )
           -
           new Date(
-            a.timestamp
+            first.timestamp
           )
       )[0];
 
 
-  if (globalUpdated) {
+  if (updated) {
 
-    globalUpdated.textContent =
+    updated.textContent =
       newest
         ? "ข้อมูลล่าสุด · " +
           formatDate(
@@ -5430,6 +4038,28 @@ async function refreshData() {
 // ============================================================
 // EVENTS
 // ============================================================
+
+$("#themeToggle")
+  ?.addEventListener(
+    "click",
+    () => {
+
+      const current =
+        document.documentElement
+          .getAttribute(
+            "data-theme"
+          );
+
+
+      applyTheme(
+        current === "dark"
+          ? "light"
+          : "dark"
+      );
+
+    }
+  );
+
 
 $("#stationSelect")
   ?.addEventListener(
@@ -5467,9 +4097,7 @@ $("#dateInput")
 
       renderSummary();
 
-
       renderChart();
-
 
       updateDownloadMenuInfo();
 
@@ -5524,19 +4152,19 @@ $("#previousDate")
         getAvailableDates();
 
 
-      const currentIndex =
+      const index =
         dates.indexOf(
           state.selectedDate
         );
 
 
       if (
-        currentIndex > 0
+        index > 0
       ) {
 
         state.selectedDate =
           dates[
-            currentIndex - 1
+            index - 1
           ];
 
 
@@ -5557,21 +4185,21 @@ $("#nextDate")
         getAvailableDates();
 
 
-      const currentIndex =
+      const index =
         dates.indexOf(
           state.selectedDate
         );
 
 
       if (
-        currentIndex >= 0 &&
-        currentIndex <
+        index >= 0 &&
+        index <
           dates.length - 1
       ) {
 
         state.selectedDate =
           dates[
-            currentIndex + 1
+            index + 1
           ];
 
 
@@ -5586,371 +4214,45 @@ $("#nextDate")
 $("#refreshButton")
   ?.addEventListener(
     "click",
-    async event => {
-
-      const button =
-        event.currentTarget;
-
-
-      if (button.disabled) {
-
-        return;
-
-      }
-
-
-      button.disabled =
-        true;
-
-
-      try {
-
-        await refreshData();
-
-      }
-
-      finally {
-
-        button.disabled =
-          false;
-
-      }
-
-    }
+    refreshData
   );
-// ============================================================
-// CLOCK
-// ============================================================
 
-function updateClock() {
 
-  const clock =
-    $("#liveClock");
-
-
-  if (!clock) {
-
-    return;
-
-  }
-
-
-  clock.textContent =
-    new Intl.DateTimeFormat(
-      "th-TH",
-      {
-        timeZone:
-          "Asia/Bangkok",
-
-        dateStyle:
-          "medium",
-
-        timeStyle:
-          "medium"
-      }
-    ).format(
-      new Date()
-    );
-
-}
-
-
-// ============================================================
-// STATION DIALOG
-// ============================================================
-
-function closeAddStationDialog() {
-
-  const dialog =
-    $("#addStationDialog");
-
-
-  if (dialog?.open) {
-
-    dialog.close();
-
-  }
-
-}
-
-
-function openStationDialog(
-  stationId = ""
-) {
-
-  const dialog =
-    $("#addStationDialog");
-
-
-  const form =
-    $("#addStationForm");
-
-
-  if (
-    !dialog ||
-    !form
-  ) {
-
-    return;
-
-  }
-
-
-  form.reset();
-
-
-  if (
-    form.elements.stationId
-  ) {
-
-    form.elements.stationId.value =
-      stationId;
-
-  }
-
-
-  const station =
-    stations.find(
-      item =>
-        item.id ===
-        stationId
-    );
-
-
-  const title =
-    $("#stationDialogTitle");
-
-
-  const submitButton =
-    $("#stationSubmitButton");
-
-
-  if (title) {
-
-    title.textContent =
-      station
-        ? "แก้ไขสถานี"
-        : "เพิ่มสถานีใหม่";
-
-  }
-
-
-  if (submitButton) {
-
-    submitButton.textContent =
-      station
-        ? "บันทึกการแก้ไข"
-        : "บันทึกสถานี";
-
-  }
-
-
-  /*
-   * เติมข้อมูลเดิมลงในแบบฟอร์ม
-   * เมื่อผู้ใช้กดแก้ไข
-   */
-  if (station) {
-
-    const fieldNames = [
-      "name",
-      "shortName",
-      "latitude",
-      "longitude",
-      "googleSheetCsv",
-      "warningLevel",
-      "color",
-      "maxPipeHeight"
-    ];
-
-
-    fieldNames.forEach(
-      fieldName => {
-
-        const field =
-          form.elements[
-            fieldName
-          ];
-
-
-        if (field) {
-
-          field.value =
-            station[
-              fieldName
-            ] ?? "";
-
-        }
-
-      }
-    );
-
-  }
-
-
-  if (!dialog.open) {
-
-    dialog.showModal();
-
-  }
-
-}
-
-
-// ============================================================
-// DELETE STATION DIALOG
-// ============================================================
-
-function openDeleteStationDialog(
-  stationId
-) {
-
-  const station =
-    stations.find(
-      item =>
-        item.id ===
-        stationId
-    );
-
-
-  const dialog =
-    $("#deleteStationDialog");
-
-
-  if (
-    !station ||
-    !dialog
-  ) {
-
-    return;
-
-  }
-
-
-  /*
-   * ป้องกันการลบสถานีสุดท้าย
-   */
-  if (
-    stations.length <= 1
-  ) {
-
-    alert(
-      "ต้องมีอย่างน้อย 1 สถานี"
-    );
-
-
-    return;
-
-  }
-
-
-  dialog.dataset.stationId =
-    stationId;
-
-
-  const stationName =
-    $("#deleteStationName");
-
-
-  if (stationName) {
-
-    stationName.textContent =
-      station.name;
-
-  }
-
-
-  if (!dialog.open) {
-
-    dialog.showModal();
-
-  }
-
-}
-
-
-// ============================================================
-// SETUP STATION MANAGEMENT
-// ============================================================
-
-function setupAddStationMenu() {
-
-  const dialog =
-    $("#addStationDialog");
-
-
-  const deleteDialog =
-    $("#deleteStationDialog");
-
-
-  const form =
-    $("#addStationForm");
-
-
-  $("#addStationButton")
-    ?.addEventListener(
-      "click",
-      () => {
-
-        openStationDialog();
-
-      }
-    );
-
-
-  $("#closeStationDialog")
-    ?.addEventListener(
-      "click",
-      () => {
-
-        closeAddStationDialog();
-
-      }
-    );
-
-
-  $("#cancelStationDialog")
-    ?.addEventListener(
-      "click",
-      () => {
-
-        closeAddStationDialog();
-
-      }
-    );
-
-
-  /*
-   * ปิด dialog เมื่อกดพื้นที่ backdrop
-   */
-  dialog?.addEventListener(
+$("#addStationButton")
+  ?.addEventListener(
     "click",
-    event => {
-
-      if (
-        event.target === dialog
-      ) {
-
-        closeAddStationDialog();
-
-      }
-
-    }
+    () =>
+      openStationDialog()
   );
 
 
-  /*
-   * บันทึกการเพิ่มหรือแก้ไขสถานี
-   */
-  form?.addEventListener(
+$("#closeStationDialog")
+  ?.addEventListener(
+    "click",
+    closeStationDialog
+  );
+
+
+$("#cancelStationDialog")
+  ?.addEventListener(
+    "click",
+    closeStationDialog
+  );
+
+
+$("#addStationForm")
+  ?.addEventListener(
     "submit",
     async event => {
 
       event.preventDefault();
 
 
-      if (
-        !form.reportValidity()
-      ) {
+      const form =
+        event.currentTarget;
+
+
+      if (!form.reportValidity()) {
 
         return;
 
@@ -5971,22 +4273,6 @@ function setupAddStationMenu() {
         );
 
 
-      const name =
-        String(
-          values.get(
-            "name"
-          ) || ""
-        ).trim();
-
-
-      const shortName =
-        String(
-          values.get(
-            "shortName"
-          ) || ""
-        ).trim();
-
-
       const latitude =
         Number(
           values.get(
@@ -6001,14 +4287,6 @@ function setupAddStationMenu() {
             "longitude"
           )
         );
-
-
-      const googleSheetCsv =
-        String(
-          values.get(
-            "googleSheetCsv"
-          ) || ""
-        ).trim();
 
 
       const warningLevel =
@@ -6027,85 +4305,15 @@ function setupAddStationMenu() {
         );
 
 
-      const color =
-        String(
-          values.get(
-            "color"
-          ) || "#14B8A6"
-        );
-
-
-      /*
-       * ตรวจสอบข้อมูลก่อนบันทึก
-       */
       if (
-        !name ||
-        !shortName
-      ) {
-
-        alert(
-          "กรุณากรอกชื่อสถานีและชื่อย่อ"
-        );
-
-
-        return;
-
-      }
-
-
-      if (
-        !Number.isFinite(latitude) ||
         latitude < -90 ||
-        latitude > 90
-      ) {
-
-        alert(
-          "Latitude ต้องอยู่ระหว่าง -90 ถึง 90"
-        );
-
-
-        return;
-
-      }
-
-
-      if (
-        !Number.isFinite(longitude) ||
+        latitude > 90 ||
         longitude < -180 ||
         longitude > 180
       ) {
 
         alert(
-          "Longitude ต้องอยู่ระหว่าง -180 ถึง 180"
-        );
-
-
-        return;
-
-      }
-
-
-      if (
-        !googleSheetCsv
-      ) {
-
-        alert(
-          "กรุณากรอกลิงก์ Google Sheets CSV"
-        );
-
-
-        return;
-
-      }
-
-
-      if (
-        !Number.isFinite(warningLevel) ||
-        warningLevel < 0
-      ) {
-
-        alert(
-          "ระดับเฝ้าระวังต้องเป็นเลขตั้งแต่ 0 ขึ้นไป"
+          "กรุณาตรวจสอบ Latitude และ Longitude"
         );
 
 
@@ -6144,23 +4352,41 @@ function setupAddStationMenu() {
       }
 
 
+      const color =
+        String(
+          values.get(
+            "color"
+          ) ||
+          "#14B8A6"
+        );
+
+
       const existing =
         stations.find(
-          item =>
-            item.id ===
+          station =>
+            station.id ===
             stationId
         );
 
 
       const station = {
-
         id:
           existing?.id ||
           `station-${Date.now()}`,
 
-        name,
+        name:
+          String(
+            values.get(
+              "name"
+            )
+          ).trim(),
 
-        shortName,
+        shortName:
+          String(
+            values.get(
+              "shortName"
+            )
+          ).trim(),
 
         deployed:
           true,
@@ -6169,7 +4395,12 @@ function setupAddStationMenu() {
 
         longitude,
 
-        googleSheetCsv,
+        googleSheetCsv:
+          String(
+            values.get(
+              "googleSheetCsv"
+            )
+          ).trim(),
 
         unit:
           "เมตร",
@@ -6185,13 +4416,9 @@ function setupAddStationMenu() {
             color,
             0.12
           )
-
       };
 
 
-      /*
-       * แก้ไขข้อมูลเดิมหรือเพิ่มรายการใหม่
-       */
       if (existing) {
 
         Object.assign(
@@ -6228,7 +4455,7 @@ function setupAddStationMenu() {
       form.reset();
 
 
-      closeAddStationDialog();
+      closeStationDialog();
 
 
       await refreshData();
@@ -6237,170 +4464,486 @@ function setupAddStationMenu() {
   );
 
 
-  /*
-   * ยกเลิกการลบ
-   */
-  $("#cancelDeleteStation")
-    ?.addEventListener(
-      "click",
-      () => {
-
-        if (
-          deleteDialog?.open
-        ) {
-
-          deleteDialog.close();
-
-        }
-
-      }
-    );
-
-
-  /*
-   * ปิดหน้าต่างลบเมื่อกด backdrop
-   */
-  deleteDialog?.addEventListener(
+$("#cancelDeleteStation")
+  ?.addEventListener(
     "click",
-    event => {
+    () =>
+      $("#deleteStationDialog")
+        ?.close()
+  );
+
+
+$("#confirmDeleteStation")
+  ?.addEventListener(
+    "click",
+    () => {
 
       if (
-        event.target === deleteDialog
+        stations.length <= 1
       ) {
 
-        deleteDialog.close();
+        return;
 
       }
+
+
+      const dialog =
+        $("#deleteStationDialog");
+
+
+      const index =
+        stations.findIndex(
+          station =>
+            station.id ===
+            dialog?.dataset.stationId
+        );
+
+
+      if (
+        index < 0
+      ) {
+
+        return;
+
+      }
+
+
+      const [
+        removed
+      ] =
+        stations.splice(
+          index,
+          1
+        );
+
+
+      delete state.data[
+        removed.id
+      ];
+
+
+      if (
+        state.selectedStationId ===
+        removed.id
+      ) {
+
+        state.selectedStationId =
+          stations[
+            Math.min(
+              index,
+              stations.length - 1
+            )
+          ]?.id || "";
+
+      }
+
+
+      state.selectedDate =
+        "";
+
+
+      saveStations();
+
+
+      dialog.close();
+
+
+      renderEverything(
+        true
+      );
 
     }
   );
 
 
-  /*
-   * ยืนยันการลบสถานี
-   */
-  $("#confirmDeleteStation")
-    ?.addEventListener(
-      "click",
-      () => {
+$("#downloadMenuButton")
+  ?.addEventListener(
+    "click",
+    event => {
 
-        if (
-          stations.length <= 1
-        ) {
+      event.stopPropagation();
 
-          alert(
-            "ต้องมีอย่างน้อย 1 สถานี"
+
+      const menu =
+        $("#downloadMenu");
+
+
+      const opening =
+        !menu?.classList.contains(
+          "show"
+        );
+
+
+      menu?.classList.toggle(
+        "show",
+        opening
+      );
+
+
+      event.currentTarget
+        .setAttribute(
+          "aria-expanded",
+          String(opening)
+        );
+
+
+      updateDownloadMenuInfo();
+
+    }
+  );
+
+
+$("#closeDownloadMenu")
+  ?.addEventListener(
+    "click",
+    closeDownloadMenu
+  );
+
+
+$("#downloadMenu")
+  ?.addEventListener(
+    "click",
+    event =>
+      event.stopPropagation()
+  );
+
+
+$("#downloadSelectedCsv")
+  ?.addEventListener(
+    "click",
+    () => {
+
+      const station =
+        stations.find(
+          item =>
+            item.id ===
+            state.selectedStationId
+        );
+
+
+      const readings =
+        getExportReadings(
+          station
+        );
+
+
+      if (
+        !station ||
+        !readings.length
+      ) {
+
+        alert(
+          "ไม่มีข้อมูลสำหรับดาวน์โหลด"
+        );
+
+
+        return;
+
+      }
+
+
+      downloadBlob(
+        "\uFEFF" +
+        createStationCsv(
+          station,
+          readings
+        ),
+
+        `station-${station.id}-${state.selectedDate || "all"}.csv`,
+
+        "text/csv;charset=utf-8"
+      );
+
+
+      closeDownloadMenu();
+
+    }
+  );
+
+
+$("#downloadAllCsv")
+  ?.addEventListener(
+    "click",
+    () => {
+
+      const rows = [
+        [
+          "สถานี",
+          "วันที่",
+          "เวลา",
+          "ระดับน้ำ (m)",
+          "Latitude",
+          "Longitude"
+        ]
+      ];
+
+
+      stations.forEach(
+        station => {
+
+          getExportReadings(
+            station
+          ).forEach(
+            reading => {
+
+              rows.push([
+                station.name,
+                exportDate(reading.timestamp),
+                exportTime(reading.timestamp),
+                Number.isFinite(reading.level)
+                  ? reading.level.toFixed(3)
+                  : "",
+                Number.isFinite(reading.latitude)
+                  ? reading.latitude.toFixed(6)
+                  : "",
+                Number.isFinite(reading.longitude)
+                  ? reading.longitude.toFixed(6)
+                  : ""
+              ]);
+
+            }
           );
 
-
-          return;
-
         }
+      );
 
 
-        const stationId =
-          deleteDialog
-            ?.dataset
-            .stationId;
+      if (
+        rows.length === 1
+      ) {
+
+        alert(
+          "ไม่มีข้อมูลสำหรับดาวน์โหลด"
+        );
 
 
-        const stationIndex =
-          stations.findIndex(
-            item =>
-              item.id ===
-              stationId
-          );
+        return;
+
+      }
 
 
-        if (
-          stationIndex < 0
-        ) {
-
-          return;
-
-        }
-
-
-        const removedStations =
-          stations.splice(
-            stationIndex,
-            1
-          );
+      const csv =
+        rows
+          .map(
+            row =>
+              row
+                .map(
+                  csvCell
+                )
+                .join(",")
+          )
+          .join("\r\n");
 
 
-        const removedStation =
-          removedStations[0];
+      downloadBlob(
+        "\uFEFF" + csv,
+        `water-all-${state.selectedDate || "all"}.csv`,
+        "text/csv;charset=utf-8"
+      );
 
 
-        if (removedStation) {
+      closeDownloadMenu();
 
-          delete state.data[
-            removedStation.id
-          ];
-
-        }
+    }
+  );
 
 
-        /*
-         * หากลบสถานีที่กำลังเลือก
-         * ให้เลือกสถานีข้างเคียง
-         */
-        if (
-          state.selectedStationId ===
-          removedStation?.id
-        ) {
+$("#downloadSummaryCsv")
+  ?.addEventListener(
+    "click",
+    () => {
 
-          const nextIndex =
-            Math.min(
-              stationIndex,
-              stations.length - 1
+      if (!state.selectedDate) {
+
+        alert(
+          "กรุณาเลือกวันที่"
+        );
+
+
+        return;
+
+      }
+
+
+      const rows = [
+        [
+          "สถานี",
+          "วันที่",
+          "ค่าล่าสุด",
+          "ค่าเฉลี่ย",
+          "ต่ำสุด",
+          "สูงสุด",
+          "จำนวนข้อมูล"
+        ]
+      ];
+
+
+      stations.forEach(
+        station => {
+
+          const stats =
+            getDailyStats(
+              station.id,
+              state.selectedDate
             );
 
 
-          state.selectedStationId =
-            stations[
-              nextIndex
-            ]?.id || "";
+          rows.push([
+            station.name,
+            state.selectedDate,
+            stats?.latest.toFixed(3) || "",
+            stats?.average.toFixed(3) || "",
+            stats?.min.toFixed(3) || "",
+            stats?.max.toFixed(3) || "",
+            stats?.count || 0
+          ]);
 
         }
+      );
 
 
-        state.selectedDate =
-          "";
+      const csv =
+        rows
+          .map(
+            row =>
+              row
+                .map(
+                  csvCell
+                )
+                .join(",")
+          )
+          .join("\r\n");
 
 
-        saveStations();
+      downloadBlob(
+        "\uFEFF" + csv,
+        `water-summary-${state.selectedDate}.csv`,
+        "text/csv;charset=utf-8"
+      );
 
 
-        if (
-          deleteDialog?.open
-        ) {
+      closeDownloadMenu();
 
-          deleteDialog.close();
-
-        }
+    }
+  );
 
 
-        renderEverything(
-          true
-        );
+$("#downloadJson")
+  ?.addEventListener(
+    "click",
+    () => {
 
+      const backup = {
+        exportedAt:
+          new Date()
+            .toISOString(),
+
+        selectedDate:
+          state.selectedDate,
+
+        stations:
+          stations.map(
+            station => ({
+              ...station,
+
+              readings:
+                state.data[
+                  station.id
+                ] || []
+            })
+          )
+      };
+
+
+      downloadBlob(
+        JSON.stringify(
+          backup,
+          null,
+          2
+        ),
+
+        "water-monitoring-backup.json",
+
+        "application/json;charset=utf-8"
+      );
+
+
+      closeDownloadMenu();
+
+    }
+  );
+
+
+document.addEventListener(
+  "click",
+  () => {
+
+    closeDownloadMenu();
+
+    closeStationMenus();
+
+  }
+);
+
+
+document.addEventListener(
+  "keydown",
+  event => {
+
+    if (
+      event.key === "Escape"
+    ) {
+
+      closeDownloadMenu();
+
+      closeStationMenus();
+
+    }
+
+  }
+);
+
+
+// ============================================================
+// CLOCK AND START
+// ============================================================
+
+function updateClock() {
+
+  const clock =
+    $("#liveClock");
+
+
+  if (!clock) {
+
+    return;
+
+  }
+
+
+  clock.textContent =
+    new Intl.DateTimeFormat(
+      "th-TH",
+      {
+        timeZone:
+          "Asia/Bangkok",
+
+        dateStyle:
+          "medium",
+
+        timeStyle:
+          "medium"
       }
+    ).format(
+      new Date()
     );
 
 }
 
 
-// ============================================================
-// START
-// ============================================================
-
 applyTheme(
   getPreferredTheme()
 );
-
-
-setupAddStationMenu();
 
 
 updateClock();
