@@ -1853,3 +1853,30 @@ html[data-theme="dark"] .station-form-help {
     font-size: 31px;
   }
 }
+
+
+/* Per-station status thresholds and chart sampling controls */
+.station-thresholds { margin-top: 12px; padding: 10px; border-radius: 12px; background: var(--surface-soft); cursor: default; }
+.station-thresholds summary { display:flex; align-items:center; justify-content:space-between; gap:8px; color:var(--muted); font-size:9px; font-weight:700; cursor:pointer; list-style:none; }
+.station-thresholds summary::-webkit-details-marker { display:none; }
+.threshold-edit-button { padding:4px 8px; border:1px solid var(--border); border-radius:7px; background:var(--surface); color:var(--primary); font:inherit; cursor:pointer; }
+.threshold-preview { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:5px; margin-top:8px; }
+.threshold-chip { padding:5px 6px; border-radius:7px; font-size:8px; line-height:1.5; }
+.threshold-chip strong,.threshold-chip span { display:block; }
+.threshold-chip.normal { color:#168558; background:rgba(34,174,113,.12); }
+.threshold-chip.warning { color:#b97814; background:rgba(244,183,64,.16); }
+.threshold-chip.critical { color:#c74747; background:rgba(226,77,77,.14); }
+.threshold-editor { display:grid; grid-template-columns:1fr 1fr; gap:7px; margin-top:9px; }
+.threshold-editor label { display:grid; gap:3px; color:var(--muted); font-size:8px; }
+.threshold-editor input { width:100%; min-width:0; padding:6px; border:1px solid var(--border); border-radius:7px; background:var(--surface); color:var(--text); font:inherit; }
+.threshold-actions { display:flex; justify-content:flex-end; gap:6px; margin-top:8px; }
+.threshold-actions button { padding:5px 9px; border:1px solid var(--border); border-radius:7px; background:var(--surface); color:var(--text); font:inherit; font-size:8px; cursor:pointer; }
+.threshold-actions .save-thresholds { background:var(--primary); color:white; }
+.chart-interval-switch { display:flex; flex-wrap:wrap; gap:5px; }
+.interval-button { padding:7px 10px; border:1px solid var(--border); border-radius:8px; background:var(--surface); color:var(--muted); font:inherit; font-size:9px; cursor:pointer; }
+.interval-button.active { border-color:var(--primary); background:var(--primary-soft); color:var(--primary-dark); }
+@media (max-width:700px) { .chart-interval-switch { grid-column:1/-1; } .threshold-preview { grid-template-columns:1fr; } }
+
+.station-status.critical { background:#fde8e8; color:#bd3535; }
+.station-status.critical span { background:#df4848; }
+
