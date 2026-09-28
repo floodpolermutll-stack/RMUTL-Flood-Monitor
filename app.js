@@ -131,6 +131,9 @@ const state = {
   chartMode:
     "station",
 
+  chartInterval:
+    60,
+
   data:
     {},
 
@@ -1286,36 +1289,18 @@ function getStatus(station) {
   }
 
 
-  if (
-    Number.isFinite(
-      Number(
-        station.warningLevel
-      )
-    ) &&
-    reading.level >=
-      Number(
-        station.warningLevel
-      )
-  ) {
+  const warningLevel = Number(station.warningLevel ?? 0.8);
+  const criticalLevel = Number(station.criticalLevel ?? station.maxPipeHeight ?? DEFAULT_PIPE_HEIGHT);
 
-    return {
-      className:
-        "warning",
-
-      text:
-        "เฝ้าระวัง"
-    };
-
+  if (reading.level >= criticalLevel) {
+    return { className: "critical", text: "วิกฤต" };
   }
 
+  if (reading.level >= warningLevel) {
+    return { className: "warning", text: "เฝ้าระวัง" };
+  }
 
-  return {
-    className:
-      "normal",
-
-    text:
-      "ปกติ"
-  };
+  return { className: "normal", text: "ปกติ" };
 
 }
 
@@ -1416,6 +1401,26 @@ function renderPipeGauge(
 }
 
 
+function aggregateByInterval(readings, intervalMinutes) {
+  if (intervalMinutes === 60) return aggregateHourly(readings);
+  const count = 1440 / intervalMinutes;
+  const buckets = Array.from({ length: count }, () => []);
+  readings.forEach(reading => {
+    const parts = new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Bangkok", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(new Date(reading.timestamp));
+    const hour = Number(parts.find(part => part.type === "hour")?.value || 0);
+    const minute = Number(parts.find(part => part.type === "minute")?.value || 0);
+    const index = Math.floor((hour * 60 + minute) / intervalMinutes);
+    if (Number.isFinite(reading.level) && buckets[index]) buckets[index].push(reading.level);
+  });
+  return buckets.map((values, index) => ({
+    hour: index,
+    average: values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null,
+    min: values.length ? Math.min(...values) : null,
+    max: values.length ? Math.max(...values) : null,
+    count: values.length,
+    label: `${String(Math.floor(index * intervalMinutes / 60)).padStart(2,"0")}:${String(index * intervalMinutes % 60).padStart(2,"0")}`
+  }));
+}
 function renderCards() {
 
   const container =
@@ -1592,6 +1597,26 @@ function renderCards() {
                   </div>
 
                 </div>
+
+                <details class="station-thresholds" data-threshold-panel="${id}">
+                  <summary>
+                    <span>กำหนดระยะสถานะ</span>
+                    <button type="button" class="threshold-edit-button" data-threshold-edit="${id}">แก้ไข</button>
+                  </summary>
+                  <div class="threshold-preview">
+                    <div class="threshold-chip normal"><strong>ปกติ</strong><span>0–${Number(station.warningLevel ?? 0.8).toFixed(2)} ม.</span></div>
+                    <div class="threshold-chip warning"><strong>เฝ้าระวัง</strong><span>${Number(station.warningLevel ?? 0.8).toFixed(2)}–${Number(station.criticalLevel ?? station.maxPipeHeight ?? DEFAULT_PIPE_HEIGHT).toFixed(2)} ม.</span></div>
+                    <div class="threshold-chip critical"><strong>วิกฤต</strong><span>ตั้งแต่ ${Number(station.criticalLevel ?? station.maxPipeHeight ?? DEFAULT_PIPE_HEIGHT).toFixed(2)} ม.</span></div>
+                  </div>
+                  <div class="threshold-editor" hidden>
+                    <label>เริ่มเฝ้าระวัง (ม.)<input type="number" min="0" step="0.01" data-warning-input="${id}" value="${Number(station.warningLevel ?? 0.8)}"></label>
+                    <label>เริ่มวิกฤต (ม.)<input type="number" min="0" step="0.01" data-critical-input="${id}" value="${Number(station.criticalLevel ?? station.maxPipeHeight ?? DEFAULT_PIPE_HEIGHT)}"></label>
+                  </div>
+                  <div class="threshold-actions" hidden>
+                    <button type="button" data-threshold-cancel="${id}">ยกเลิก</button>
+                    <button type="button" class="save-thresholds" data-threshold-save="${id}">บันทึก</button>
+                  </div>
+                </details>
 
                 <div class="station-update">
 
@@ -2477,15 +2502,9 @@ function renderChart() {
   }
 
 
-  const labels =
-    Array.from(
-      {
-        length:
-          24
-      },
-      (_, hour) =>
-        `${String(hour).padStart(2, "0")}:00`
-    );
+  const interval = Number(state.chartInterval || 60);
+  const chartBuckets = aggregateByInterval([], interval);
+  const labels = chartBuckets.map(item => item.label || `${String(item.hour).padStart(2, "0")}:00`);
 
 
   const dark =
@@ -2528,11 +2547,12 @@ function renderChart() {
         station => {
 
           const hourly =
-            aggregateHourly(
+            aggregateByInterval(
               getReadingsForDate(
                 station.id,
                 state.selectedDate
-              )
+              ),
+              interval
             );
 
 
@@ -2587,7 +2607,7 @@ function renderChart() {
     if ($("#chartNotice")) {
 
       $("#chartNotice").textContent =
-        `เปรียบเทียบค่าเฉลี่ยรายชั่วโมงของทั้ง ${stations.length} สถานี`;
+        `เปรียบเทียบค่าเฉลี่ยทุก ${interval} นาทีของทั้ง ${stations.length} สถานี`;
 
     }
 
@@ -2618,8 +2638,9 @@ function renderChart() {
 
 
     const hourly =
-      aggregateHourly(
-        readings
+      aggregateByInterval(
+        readings,
+        interval
       );
 
 
@@ -2747,7 +2768,7 @@ function renderChart() {
 
       $("#chartNotice").textContent =
         readings.length
-          ? `ข้อมูล ${readings.length} จุดวัด ถูกคำนวณเป็นค่าเฉลี่ยรายชั่วโมง`
+          ? `ข้อมูล ${readings.length} จุดวัด แสดงเป็นค่าเฉลี่ยทุก ${interval} นาที`
           : "ไม่มีข้อมูลสำหรับวันที่เลือก";
 
     }
@@ -4105,6 +4126,38 @@ $("#dateInput")
   );
 
 
+document.addEventListener("click", event => {
+  const edit = event.target.closest("[data-threshold-edit]");
+  const save = event.target.closest("[data-threshold-save]");
+  const cancel = event.target.closest("[data-threshold-cancel]");
+  const id = edit?.dataset.thresholdEdit || save?.dataset.thresholdSave || cancel?.dataset.thresholdCancel;
+  if (!id) return;
+  event.preventDefault();
+  event.stopPropagation();
+  const station = stations.find(item => item.id === id);
+  const panel = document.querySelector(`[data-threshold-panel="${CSS.escape(id)}"]`);
+  if (!station || !panel) return;
+  const editor = panel.querySelector(".threshold-editor");
+  const actions = panel.querySelector(".threshold-actions");
+  if (edit) { editor.hidden = false; actions.hidden = false; edit.hidden = true; panel.open = true; return; }
+  if (cancel) { renderCards(); return; }
+  const warning = Number(panel.querySelector(`[data-warning-input="${CSS.escape(id)}"]`).value);
+  const critical = Number(panel.querySelector(`[data-critical-input="${CSS.escape(id)}"]`).value);
+  if (!Number.isFinite(warning) || !Number.isFinite(critical) || warning < 0 || critical <= warning) { alert("กำหนดระดับวิกฤตให้สูงกว่าระดับเฝ้าระวัง"); return; }
+  station.warningLevel = warning;
+  station.criticalLevel = critical;
+  saveStations();
+  renderEverything(true);
+});
+
+document.querySelectorAll("[data-chart-interval]").forEach(button => {
+  button.addEventListener("click", () => {
+    state.chartInterval = Number(button.dataset.chartInterval);
+    document.querySelectorAll("[data-chart-interval]").forEach(item => item.classList.toggle("active", item === button));
+    renderChart();
+  });
+});
+
 $("#chartModeStation")
   ?.addEventListener(
     "click",
@@ -4962,3 +5015,4 @@ setInterval(
 
 
 refreshData();
+
