@@ -1880,3 +1880,8 @@ html[data-theme="dark"] .station-form-help {
 .station-status.critical { background:#fde8e8; color:#bd3535; }
 .station-status.critical span { background:#df4848; }
 
+
+.chart-zoom-controls { display:flex; align-items:center; gap:8px; margin:0 0 12px; color:var(--text); font-size:10px; }
+.chart-zoom-controls input[type="range"] { width:min(260px,34vw); accent-color:var(--primary); }
+.chart-zoom-controls button { min-width:32px; min-height:30px; padding:4px 9px; border:1px solid var(--border); border-radius:8px; background:var(--surface); color:var(--text); font:inherit; cursor:pointer; }
+.chart-zoom-controls button:hover { border-color:var(--primary); color:var(--primary); }
