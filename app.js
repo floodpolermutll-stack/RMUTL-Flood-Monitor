@@ -131,8 +131,8 @@ const state = {
   chartMode:
     "station",
 
-  chartInterval:
-    60,
+  chartZoom:
+    100,
 
   data:
     {},
@@ -2475,507 +2475,152 @@ function renderModeButtons() {
 // CHART
 // ============================================================
 
-function renderChart() {
-
-  const canvas =
-    $("#waterChart");
-
-
-  if (
-    !canvas ||
-    typeof Chart === "undefined"
-  ) {
-
-    return;
-
-  }
-
-
-  if (state.chart) {
-
-    state.chart.destroy();
-
-
-    state.chart =
-      null;
-
-  }
-
-
-  const interval = Number(state.chartInterval || 60);
-  const chartBuckets = aggregateByInterval([], interval);
-  const labels = chartBuckets.map(item => item.label || `${String(item.hour).padStart(2, "0")}:00`);
-
-
-  const dark =
-    document.documentElement
-      .getAttribute(
-        "data-theme"
-      ) === "dark";
-
-
-  const textColor =
-    dark
-      ? "#9fb4bd"
-      : "#8397a1";
-
-
-  const gridColor =
-    dark
-      ? "rgba(160,190,200,.09)"
-      : "rgba(120,150,160,.12)";
-
-
-  let datasets =
-    [];
-
-
-  if (
-    state.chartMode === "all"
-  ) {
-
-    if ($("#chartTitle")) {
-
-      $("#chartTitle").textContent =
-        `เปรียบเทียบระดับน้ำทั้ง ${stations.length} สถานี`;
-
-    }
-
-
-    datasets =
-      stations.map(
-        station => {
-
-          const hourly =
-            aggregateByInterval(
-              getReadingsForDate(
-                station.id,
-                state.selectedDate
-              ),
-              interval
-            );
-
-
-          return {
-            label:
-              station.shortName ||
-              station.name,
-
-            data:
-              hourly.map(
-                item =>
-                  item.average
-              ),
-
-            borderColor:
-              station.color,
-
-            backgroundColor:
-              station.color,
-
-            borderWidth:
-              3,
-
-            pointRadius:
-              4,
-
-            pointHoverRadius:
-              8,
-
-            pointBackgroundColor:
-              dark
-                ? "#10222c"
-                : "#ffffff",
-
-            pointBorderColor:
-              station.color,
-
-            pointBorderWidth:
-              2,
-
-            tension:
-              0.38,
-
-            spanGaps:
-              false
-          };
-
-        }
-      );
-
-
-    if ($("#chartNotice")) {
-
-      $("#chartNotice").textContent =
-        `เปรียบเทียบค่าเฉลี่ยทุก ${interval} นาทีของทั้ง ${stations.length} สถานี`;
-
-    }
-
-  }
-
-  else {
-
-    const station =
-      stations.find(
-        item =>
-          item.id ===
-          state.selectedStationId
-      );
-
-
-    if (!station) {
-
-      return;
-
-    }
-
-
-    const readings =
-      getReadingsForDate(
-        station.id,
-        state.selectedDate
-      );
-
-
-    const hourly =
-      aggregateByInterval(
-        readings,
-        interval
-      );
-
-
-    if ($("#chartTitle")) {
-
-      $("#chartTitle").textContent =
-        `ระดับน้ำ · ${station.shortName || station.name}`;
-
-    }
-
-
-    const context =
-      canvas.getContext(
-        "2d"
-      );
-
-
-    const gradient =
-      context.createLinearGradient(
-        0,
-        0,
-        0,
-        490
-      );
-
-
-    gradient.addColorStop(
-      0,
-      hexToRgba(
-        station.color,
-        dark
-          ? 0.18
-          : 0.26
-      )
-    );
-
-
-    gradient.addColorStop(
-      1,
-      hexToRgba(
-        station.color,
-        0
-      )
-    );
-
-
-    datasets = [
-      {
-        label:
-          station.shortName ||
-          station.name,
-
-        data:
-          hourly.map(
-            item =>
-              item.average
-          ),
-
-        borderColor:
-          station.color,
-
-        backgroundColor:
-          gradient,
-
-        fill:
-          true,
-
-        borderWidth:
-          3,
-
-        pointRadius:
-          4,
-
-        pointHoverRadius:
-          9,
-
-        pointBackgroundColor:
-          dark
-            ? "#10222c"
-            : "#ffffff",
-
-        pointBorderColor:
-          station.color,
-
-        pointBorderWidth:
-          3,
-
-        tension:
-          0.4,
-
-        spanGaps:
-          false
-      },
-      {
-        label:
-          "ระดับเฝ้าระวัง",
-
-        data:
-          labels.map(
-            () =>
-              Number(
-                station.warningLevel
-              )
-          ),
-
-        borderColor:
-          "#f08a45",
-
-        borderDash:
-          [
-            7,
-            7
-          ],
-
-        borderWidth:
-          2,
-
-        pointRadius:
-          0
-      }
-    ];
-
-
-    if ($("#chartNotice")) {
-
-      $("#chartNotice").textContent =
-        readings.length
-          ? `ข้อมูล ${readings.length} จุดวัด แสดงเป็นค่าเฉลี่ยทุก ${interval} นาที`
-          : "ไม่มีข้อมูลสำหรับวันที่เลือก";
-
-    }
-
-  }
-
-
-  if ($("#chartDateLabel")) {
-
-    $("#chartDateLabel").textContent =
-      state.selectedDate
-        ? formatDate(
-            `${state.selectedDate}T12:00:00+07:00`,
-            {
-              dateStyle:
-                "full"
-            }
-          )
-        : "ไม่มีข้อมูล";
-
-  }
-
-
-  state.chart =
-    new Chart(
-      canvas,
-      {
-        type:
-          "line",
-
-        data:
-          {
-            labels,
-            datasets
-          },
-
-        options:
-          {
-            responsive:
-              true,
-
-            maintainAspectRatio:
-              false,
-
-            interaction:
-              {
-                mode:
-                  "index",
-
-                intersect:
-                  false
-              },
-
-            plugins:
-              {
-                legend:
-                  {
-                    position:
-                      "top",
-
-                    align:
-                      "start",
-
-                    labels:
-                      {
-                        color:
-                          textColor,
-
-                        usePointStyle:
-                          true,
-
-                        pointStyle:
-                          "circle",
-
-                        boxWidth:
-                          8,
-
-                        padding:
-                          20
-                      }
-                  },
-
-                tooltip:
-                  {
-                    backgroundColor:
-                      "rgba(8,30,42,.96)",
-
-                    padding:
-                      13,
-
-                    cornerRadius:
-                      12,
-
-                    callbacks:
-                      {
-                        title:
-                          items =>
-                            items.length
-                              ? `เวลา ${items[0].label} น.`
-                              : "",
-
-                        label:
-                          context => {
-
-                            if (
-                              context.raw === null ||
-                              context.raw === undefined
-                            ) {
-
-                              return (
-                                `${context.dataset.label}: ไม่มีข้อมูล`
-                              );
-
-                            }
-
-
-                            return (
-                              `${context.dataset.label}: ${Number(context.raw).toFixed(3)} เมตร`
-                            );
-
-                          }
-                      }
-                  }
-              },
-
-            scales:
-              {
-                y:
-                  {
-                    beginAtZero:
-                      true,
-
-                    border:
-                      {
-                        display:
-                          false
-                      },
-
-                    grid:
-                      {
-                        color:
-                          gridColor
-                      },
-
-                    ticks:
-                      {
-                        color:
-                          textColor
-                      },
-
-                    title:
-                      {
-                        display:
-                          true,
-
-                        text:
-                          "ระดับน้ำ (เมตร)",
-
-                        color:
-                          textColor
-                      }
-                  },
-
-                x:
-                  {
-                    border:
-                      {
-                        display:
-                          false
-                      },
-
-                    grid:
-                      {
-                        display:
-                          false
-                      },
-
-                    ticks:
-                      {
-                        color:
-                          textColor,
-
-                        autoSkip:
-                          false,
-
-                        maxRotation:
-                          0,
-
-                        callback(
-                          value,
-                          index
-                        ) {
-
-                          return index % 2 === 0
-                            ? labels[index]
-                            : "";
-
-                        }
-                      }
-                  }
-              }
-          }
-      }
-    );
-
+function formatChartTime(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Bangkok",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23"
+  }).format(date);
 }
 
+function renderChart() {
+  const canvas = $("#waterChart");
+  if (!canvas || typeof Chart === "undefined") return;
+  if (state.chart) {
+    state.chart.destroy();
+    state.chart = null;
+  }
+
+  const dark = document.documentElement.getAttribute("data-theme") === "dark";
+  const textColor = dark ? "#9fb4bd" : "#8397a1";
+  const gridColor = dark ? "rgba(160,190,200,.09)" : "rgba(120,150,160,.12)";
+  const selectedStation = stations.find(item => item.id === state.selectedStationId);
+  const targetStations = state.chartMode === "all" ? stations : (selectedStation ? [selectedStation] : []);
+  const readingsByStation = targetStations.map(station => ({
+    station,
+    readings: getReadingsForDate(station.id, state.selectedDate)
+      .filter(reading => Number.isFinite(new Date(reading.timestamp).getTime()))
+      .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
+  }));
+  const allTimes = [...new Set(readingsByStation.flatMap(item => item.readings.map(reading => new Date(reading.timestamp).getTime())))].sort((a, b) => a - b);
+  const zoom = Math.min(100, Math.max(10, Number(state.chartZoom || 100)));
+  const visibleCount = allTimes.length ? Math.max(2, Math.ceil(allTimes.length * zoom / 100)) : 0;
+  const startAt = Math.max(0, Math.floor((allTimes.length - visibleCount) / 2));
+  const visibleTimes = allTimes.slice(startAt, startAt + visibleCount);
+  const minTime = visibleTimes[0] ?? 0;
+  const maxTime = visibleTimes[visibleTimes.length - 1] ?? minTime + 1;
+
+  if (state.chartMode === "all") {
+    if ($("#chartTitle")) $("#chartTitle").textContent = `เปรียบเทียบระดับน้ำทั้ง ${stations.length} สถานี`;
+  } else if (selectedStation && $("#chartTitle")) {
+    $("#chartTitle").textContent = `ระดับน้ำ · ${selectedStation.shortName || selectedStation.name}`;
+  }
+
+  const datasets = readingsByStation.map(({ station, readings }) => ({
+    label: station.shortName || station.name,
+    data: readings
+      .map(reading => ({ x: new Date(reading.timestamp).getTime(), y: reading.level }))
+      .filter(point => point.x >= minTime && point.x <= maxTime),
+    borderColor: station.color,
+    backgroundColor: station.color,
+    borderWidth: 3,
+    pointRadius: 4,
+    pointHoverRadius: 8,
+    pointBackgroundColor: dark ? "#10222c" : "#ffffff",
+    pointBorderColor: station.color,
+    pointBorderWidth: 2,
+    tension: 0,
+    spanGaps: false
+  }));
+
+  if (state.chartMode !== "all" && selectedStation && visibleTimes.length) {
+    datasets.push({
+      label: "ระดับเฝ้าระวัง",
+      data: [{ x: minTime, y: Number(selectedStation.warningLevel) }, { x: maxTime, y: Number(selectedStation.warningLevel) }],
+      borderColor: "#f08a45",
+      borderDash: [7, 7],
+      borderWidth: 2,
+      pointRadius: 0,
+      tension: 0
+    });
+  }
+
+  const totalReadings = readingsByStation.reduce((sum, item) => sum + item.readings.length, 0);
+  if ($("#chartNotice")) {
+    $("#chartNotice").textContent = totalReadings
+      ? `ข้อมูล ${totalReadings} จุด แสดงตามเวลาที่บันทึกจริง${zoom < 100 ? ` · ซูม ${Math.round(10000 / zoom) / 100}×` : ""}`
+      : "ไม่มีข้อมูลสำหรับวันที่เลือก";
+  }
+  if ($("#chartDateLabel")) {
+    $("#chartDateLabel").textContent = state.selectedDate
+      ? formatDate(`${state.selectedDate}T12:00:00+07:00`, { dateStyle: "full" })
+      : "ไม่มีข้อมูล";
+  }
+
+  const zoomSlider = $("#chartZoomSlider");
+  if (zoomSlider) zoomSlider.value = String(zoom);
+
+  state.chart = new Chart(canvas, {
+    type: "line",
+    data: { datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      parsing: false,
+      interaction: { mode: "nearest", intersect: false },
+      plugins: {
+        legend: {
+          position: "top",
+          align: "start",
+          labels: { color: textColor, usePointStyle: true, pointStyle: "circle", boxWidth: 8, padding: 20 }
+        },
+        tooltip: {
+          backgroundColor: "rgba(8,30,42,.96)",
+          padding: 13,
+          cornerRadius: 12,
+          callbacks: {
+            title: items => items.length ? `เวลา ${formatChartTime(items[0].parsed.x)} น.` : "",
+            label: context => context.raw?.y == null
+              ? `${context.dataset.label}: ไม่มีข้อมูล`
+              : `${context.dataset.label}: ${Number(context.raw.y).toFixed(3)} เมตร`
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          border: { display: false },
+          grid: { color: gridColor },
+          ticks: { color: textColor },
+          title: { display: true, text: "ระดับน้ำ (เมตร)", color: textColor }
+        },
+        x: {
+          type: "linear",
+          min: minTime,
+          max: maxTime,
+          border: { display: false },
+          grid: { color: gridColor },
+          afterBuildTicks: axis => {
+            axis.ticks = visibleTimes.map(value => ({ value }));
+          },
+          ticks: {
+            color: textColor,
+            maxRotation: 60,
+            minRotation: 45,
+            autoSkip: false,
+            font: { size: 8 },
+            callback: value => formatChartTime(value)
+          },
+          title: { display: true, text: "เวลาที่ได้รับข้อมูล", color: textColor }
+        }
+      }
+    }
+  });
+}
 
 // ============================================================
 // MAP
@@ -4150,12 +3795,24 @@ document.addEventListener("click", event => {
   renderEverything(true);
 });
 
-document.querySelectorAll("[data-chart-interval]").forEach(button => {
-  button.addEventListener("click", () => {
-    state.chartInterval = Number(button.dataset.chartInterval);
-    document.querySelectorAll("[data-chart-interval]").forEach(item => item.classList.toggle("active", item === button));
-    renderChart();
-  });
+$("#chartZoomSlider")?.addEventListener("input", event => {
+  state.chartZoom = Number(event.target.value);
+  renderChart();
+});
+
+$("#chartZoomIn")?.addEventListener("click", () => {
+  state.chartZoom = Math.max(10, Number(state.chartZoom || 100) - 10);
+  renderChart();
+});
+
+$("#chartZoomOut")?.addEventListener("click", () => {
+  state.chartZoom = Math.min(100, Number(state.chartZoom || 100) + 10);
+  renderChart();
+});
+
+$("#chartZoomReset")?.addEventListener("click", () => {
+  state.chartZoom = 100;
+  renderChart();
 });
 
 $("#chartModeStation")
@@ -5015,4 +4672,5 @@ setInterval(
 
 
 refreshData();
+
 
