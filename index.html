@@ -476,11 +476,12 @@
 
       </div>
 
-      <div class="chart-interval-switch" role="group" aria-label="ช่วงเวลาของกราฟ">
-        <button type="button" class="interval-button" data-chart-interval="2">2 นาที</button>
-        <button type="button" class="interval-button" data-chart-interval="10">10 นาที</button>
-        <button type="button" class="interval-button" data-chart-interval="30">30 นาที</button>
-        <button type="button" class="interval-button active" data-chart-interval="60">1 ชั่วโมง</button>
+      <div class="chart-zoom-controls" role="group" aria-label="ปรับซูมกราฟ">
+        <span>ซูม</span>
+        <button type="button" id="chartZoomOut" aria-label="ซูมน้อยลง">−</button>
+        <input type="range" id="chartZoomSlider" min="10" max="100" step="5" value="100" aria-label="ปรับระดับซูม">
+        <button type="button" id="chartZoomIn" aria-label="ซูมมากขึ้น">+</button>
+        <button type="button" id="chartZoomReset">รีเซ็ต</button>
       </div>
 
       <details class="section-help section-help-inline">
