@@ -452,7 +452,7 @@
         </strong>
 
         <span>
-          ข้อมูลถูกคำนวณเป็นค่าเฉลี่ยทุก 1 ชั่วโมง
+          เลือกช่วงเวลาแสดงผลได้ตั้งแต่ 2 นาทีถึง 1 ชั่วโมง
         </span>
       </div>
 
@@ -474,6 +474,13 @@
           เปรียบเทียบทุกสถานี
         </button>
 
+      </div>
+
+      <div class="chart-interval-switch" role="group" aria-label="ช่วงเวลาของกราฟ">
+        <button type="button" class="interval-button" data-chart-interval="2">2 นาที</button>
+        <button type="button" class="interval-button" data-chart-interval="10">10 นาที</button>
+        <button type="button" class="interval-button" data-chart-interval="30">30 นาที</button>
+        <button type="button" class="interval-button active" data-chart-interval="60">1 ชั่วโมง</button>
       </div>
 
       <details class="section-help section-help-inline">
@@ -843,9 +850,9 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-  <script src="config.js?v=20260905-1"></script>
+  <script src="config.js?v=20260928-1"></script>
 
-  <script src="app.js?v=20260905-1"></script>
+  <script src="app.js?v=20260928-1"></script>
 
 </body>
 
